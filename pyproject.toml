@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "testproject"
+version = "0.1.0"
+description = ""
+authors = ["Giovanni Misitano <giovanni.a.misitano@jyu.fi>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+Flask = "^1.1.2"
+Flask-RESTful = "^0.3.8"
+requests = "^2.25.1"
+desdeo = "^1.1.1"
+Flask-JWT-Extended = "^4.0.2"
+Flask-SQLAlchemy = "^2.4.4"
+passlib = "^1.7.4"
+
+[tool.poetry.dev-dependencies]
+flake8 = "^3.8.4"
+black = "^20.8b1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
