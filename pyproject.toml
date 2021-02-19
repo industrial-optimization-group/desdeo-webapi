@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "testproject"
+name = "desdeo-restful"
 version = "0.1.0"
 description = ""
 authors = ["Giovanni Misitano <giovanni.a.misitano@jyu.fi>"]
@@ -13,6 +13,7 @@ desdeo = "^1.1.1"
 Flask-JWT-Extended = "^4.0.2"
 Flask-SQLAlchemy = "^2.4.4"
 passlib = "^1.7.4"
+dill = "^0.3.3"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"

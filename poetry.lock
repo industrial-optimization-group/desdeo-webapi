@@ -142,6 +142,17 @@ pandas = ">=1.0,<2.0"
 scipy = ">=1.2,<2.0"
 
 [[package]]
+name = "dill"
+version = "0.3.3"
+description = "serialize all of python"
+category = "main"
+optional = false
+python-versions = ">=2.6, !=3.0.*"
+
+[package.extras]
+graph = ["objgraph (>=1.7.2)"]
+
+[[package]]
 name = "diversipy"
 version = "0.8"
 description = "Sample in hypercubes, select diverse subsets, and measure diversity"
@@ -604,7 +615,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "3fad252104b82c027e34094f235603c2ed854dcca24b527828e87e62fd26fb4a"
+content-hash = "6078b6c151f99c17a9f5e670d3d7d93ae916131e4f9bb9c9a6796bff6a66da5f"
 
 [metadata.files]
 aniso8601 = [
@@ -653,6 +664,10 @@ desdeo-problem = [
 desdeo-tools = [
     {file = "desdeo-tools-1.2.0.tar.gz", hash = "sha256:8eae3245e8274e0d22f52b68770b994bef11e3bc26a74497b68e3c0d93d8ca92"},
     {file = "desdeo_tools-1.2.0-py3-none-any.whl", hash = "sha256:430908471bfed2f89746af012bf6ce78d71cc79a9011405682d2bda8de94d345"},
+]
+dill = [
+    {file = "dill-0.3.3-py2.py3-none-any.whl", hash = "sha256:78370261be6ea49037ace8c17e0b7dd06d0393af6513cc23f9b222d9367ce389"},
+    {file = "dill-0.3.3.zip", hash = "sha256:efb7f6cb65dba7087c1e111bb5390291ba3616741f96840bfc75792a1a9b5ded"},
 ]
 diversipy = [
     {file = "diversipy-0.8.tar.gz", hash = "sha256:6abc959e64821c7122137c4352a7c9d45217a26feb2b4d4830d627b0c82b04d4"},
