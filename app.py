@@ -5,6 +5,7 @@ from flask_jwt_extended import JWTManager
 from flask_restful import Api
 from flask_sqlalchemy import SQLAlchemy
 
+
 app = Flask(__name__)
 
 api = Api(app)
@@ -29,9 +30,10 @@ def create_tables():
     db.create_all()
 
 
-from models import user_models
-from resources import user_resources
-import views
+from models import user_models  # noqa: E402
+from resources import user_resources  # noqa: E402
+
+# import views
 
 
 @jwt.token_in_blocklist_loader

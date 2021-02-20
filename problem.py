@@ -1,8 +1,8 @@
 from desdeo_problem import MOProblem, Variable, _ScalarObjective
 import numpy as np
-import dill as pickle
-from app import db
-from models.user_models import Problem, UserModel
+from app import db  # noqa 401 / to fix cyclic imports
+from models.user_models import UserModel
+from models.problem_models import Problem
 
 
 def objective_1(x):

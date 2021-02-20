@@ -1,5 +1,4 @@
 from passlib.hash import pbkdf2_sha256 as sha256
-import dill
 
 from app import db
 
@@ -56,14 +55,3 @@ class TokenBlocklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(120), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False)
-
-
-class Problem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    problem_type = db.Column(db.String(120), nullable=False)
-    problem_pickle = db.Column(db.PickleType(pickler=dill))
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-
-    def __repr__(self):
-        return f"Problem('{self.name}', '{self.problem_type}')"
