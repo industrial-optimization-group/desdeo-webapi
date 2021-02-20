@@ -39,7 +39,7 @@ class UserLogin(Resource):
         current_user = UserModel.find_by_username(data["username"])
 
         if not current_user:
-            return {"message": f"User {data['username']} does not exist!"}
+            return {"message": f"User {data['username']} does not exist!"}, 401
 
         try:
             if UserModel.verify_hash(data["password"], current_user.password):
@@ -49,13 +49,13 @@ class UserLogin(Resource):
                     "message": f"Logged as {current_user.username}",
                     "access_token": access_token,
                     "refresh_token": refresh_token,
-                }
+                }, 200
         except Exception as e:
             print(f"DEBUG: {e}")
-            return {"message": "Something went wrong."}
+            return {"message": "Something went wrong."}, 500
 
         else:
-            return {"message": "Wrong credentials"}
+            return {"message": "Wrong credentials"}, 401
 
 
 class UserLogoutAccess(Resource):
@@ -66,7 +66,7 @@ class UserLogoutAccess(Resource):
             now = datetime.now(timezone.utc)
             db.session.add(TokenBlocklist(jti=jti, created_at=now))
             db.session.commit()
-            return {"message": "Access token revoked"}
+            return {"message": "Access token revoked"}, 200
         except Exception as e:
             print(f"DEBUG {e}")
             return {"message": "Something went wrong while revoking an access token."}, 500

@@ -31,7 +31,8 @@ def create_tables():
 
 
 from models import user_models  # noqa: E402
-from resources import user_resources  # noqa: E402
+from resources import user_resources, problem_resources  # noqa: E402
+
 
 # import views
 
@@ -43,6 +44,7 @@ def check_if_token_revoked(jwt_header, jwt_payload):
     return token is not None
 
 
+# Add user endpoints
 api.add_resource(user_resources.UserRegistration, "/registration")
 api.add_resource(user_resources.UserLogin, "/login")
 api.add_resource(user_resources.UserLogoutAccess, "/logout/access")
@@ -50,3 +52,6 @@ api.add_resource(user_resources.UserLogoutRefresh, "/logout/refresh")
 api.add_resource(user_resources.TokenRefresh, "/token/refresh")
 api.add_resource(user_resources.AllUsers, "/users")
 api.add_resource(user_resources.SecretResource, "/secret")
+
+# Add problem endpoints
+api.add_resource(problem_resources.ProblemCreation, "/problem/create")
