@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from flask_restful import Resource, reqparse
 
 from app import db
-from models import TokenBlocklist, UserModel
+from models.user_models import TokenBlocklist, UserModel
 
 parser = reqparse.RequestParser()
 parser.add_argument("username", help="The username is required", required=True)

@@ -29,22 +29,22 @@ def create_tables():
     db.create_all()
 
 
-import models
-import resources
+from models import user_models
+from resources import user_resources
 import views
 
 
 @jwt.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload):
     jti = jwt_payload["jti"]
-    token = db.session.query(models.TokenBlocklist.id).filter_by(jti=jti).scalar()
+    token = db.session.query(user_models.TokenBlocklist.id).filter_by(jti=jti).scalar()
     return token is not None
 
 
-api.add_resource(resources.UserRegistration, "/registration")
-api.add_resource(resources.UserLogin, "/login")
-api.add_resource(resources.UserLogoutAccess, "/logout/access")
-api.add_resource(resources.UserLogoutRefresh, "/logout/refresh")
-api.add_resource(resources.TokenRefresh, "/token/refresh")
-api.add_resource(resources.AllUsers, "/users")
-api.add_resource(resources.SecretResource, "/secret")
+api.add_resource(user_resources.UserRegistration, "/registration")
+api.add_resource(user_resources.UserLogin, "/login")
+api.add_resource(user_resources.UserLogoutAccess, "/logout/access")
+api.add_resource(user_resources.UserLogoutRefresh, "/logout/refresh")
+api.add_resource(user_resources.TokenRefresh, "/token/refresh")
+api.add_resource(user_resources.AllUsers, "/users")
+api.add_resource(user_resources.SecretResource, "/secret")

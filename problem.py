@@ -2,7 +2,7 @@ from desdeo_problem import MOProblem, Variable, _ScalarObjective
 import numpy as np
 import dill as pickle
 from app import db
-from models import Problem, UserModel
+from models.user_models import Problem, UserModel
 
 
 def objective_1(x):
