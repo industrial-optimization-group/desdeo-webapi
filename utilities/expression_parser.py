@@ -2,6 +2,7 @@ from sympy import symbols, lambdify
 from typing import List
 from sympy.parsing.sympy_parser import parse_expr
 import numpy as np
+import dill
 
 
 def numpify_expressions(expressions: List[str], variables: List[str]):
@@ -33,4 +34,8 @@ def numpify_expressions(expressions: List[str], variables: List[str]):
 
 
 if __name__ == "__main__":
-    pass
+    exprs = ["x+y", "z+x"]
+    variables = ["x", "y", "z"]
+
+    res = numpify_expressions(exprs, variables)
+    dill.dumps(res)

@@ -10,6 +10,7 @@ class TestNumpifyExpressions(unittest.TestCase):
         variables = ["x", "y", "z"]
 
         numpified = numpify_expressions(expressions, variables)
+        print(numpified[0])
 
         assert len(numpified) == 3
 

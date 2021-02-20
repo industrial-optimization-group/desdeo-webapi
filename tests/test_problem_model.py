@@ -1,8 +1,9 @@
 from flask_testing import TestCase
 from app import app, db
 from models.user_models import UserModel
-from desdeo_problem import MOProblem, Variable, _ScalarObjective
+from models.problem_models import Problem
 import numpy as np
+import numpy.testing as npt
 import json
 
 
@@ -79,3 +80,19 @@ class TestProblem(TestCase):
         )
 
         assert response.status_code == 201
+
+        # fetch problem and check it
+        user_id = UserModel.query.filter_by(username="test_user").first().id
+
+        problem = Problem.query.filter_by(user_id=user_id).first()
+
+        assert problem.name == "analytical_test_problem"
+        assert problem.user_id == user_id
+        assert problem.problem_type == "Analytical"
+
+        unpickled = problem.problem_pickle
+
+        res = unpickled.evaluate(np.array([[2, 1, 3], [3, 2, 1]])).objectives
+
+        npt.assert_almost_equal(res[0], np.array([3, 2.66666666, 6]))
+        npt.assert_almost_equal(res[1], np.array([4, 7, 6]))

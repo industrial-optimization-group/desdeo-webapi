@@ -1,5 +1,10 @@
 from app import db
 import dill
+from models.user_models import UserModel
+
+# to be able to serialize lambdified expressions returned by SymPy
+# This might break some serializations!
+dill.settings["recurse"] = True
 
 
 class Problem(db.Model):
@@ -10,4 +15,4 @@ class Problem(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     def __repr__(self):
-        return f"Problem('{self.name}', '{self.problem_type}')"
+        return f"Problem('{self.name}', '{self.problem_type}', '{self.owner}')"

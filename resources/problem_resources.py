@@ -1,9 +1,11 @@
 from app import db
 from models.problem_models import Problem
+from models.user_models import UserModel
+from utilities.expression_parser import numpify_expressions
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from typing import List
 
-from desdeo_problem import MOProblem, Variable, _ScalarDataObjective
+from desdeo_problem import MOProblem, Variable, _ScalarObjective
 
 from flask_restful import Resource, reqparse
 
@@ -67,10 +69,34 @@ class ProblemCreation(Resource):
             if data["variables"] is None:
                 return {"message": "When specifying an analytical problem, variable names must be specified"}, 406
 
-            # validate objective functions
-            objective_functions = data["objective_functions"]
-            variables = data["variables"]
+            # TODO: validate objective functions
+            objective_functions_str = data["objective_functions"]
+            variables_str = data["variables"]
+
+            objective_evaluators = numpify_expressions(objective_functions_str, variables_str)
+
+            objectives = [
+                _ScalarObjective(f"objective {i+1}", evaluator) for (i, evaluator) in enumerate(objective_evaluators)
+            ]
+
+            # TODO: not asking for initial values of bounds for variables yet, initial value
+            # defaults to 0, bounds are infinity
+            variables = [Variable(x, 0) for x in variables_str]
+
+            problem = MOProblem(objectives, variables)
 
             current_user = get_jwt_identity()
+            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+
+            db.session.add(
+                Problem(
+                    name=data["name"],
+                    problem_type=data["problem_type"],
+                    problem_pickle=problem,
+                    user_id=current_user_id,
+                )
+            )
+            db.session.commit()
+
             response = {"problem_type": data["problem_type"], "name": data["name"], "owner": current_user}
             return response, 201
