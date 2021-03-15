@@ -1,13 +1,13 @@
+import json
+
+import numpy as np
 from app import db
+from desdeo_problem import MOProblem, Variable, _ScalarObjective
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_restful import Resource, reqparse
 from models.problem_models import Problem
 from models.user_models import UserModel
 from utilities.expression_parser import numpify_expressions
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from typing import List
-
-from desdeo_problem import MOProblem, Variable, _ScalarObjective
-
-from flask_restful import Resource, reqparse
 
 # The vailable problem types
 available_problem_types = ["Analytical"]
@@ -45,6 +45,16 @@ problem_create_parser.add_argument(
     required=False,
     action="append",
 )
+problem_create_parser.add_argument(
+    "variable_bounds",
+    type=str,
+    help=(
+        "If specifying an analytical problem, please define the variable bounds as a list of tuples of the form"
+        "['lower_bound', 'upper_bound']."
+    ),
+    required=True,
+    action="append",
+)
 
 
 class ProblemCreation(Resource):
@@ -72,6 +82,13 @@ class ProblemCreation(Resource):
             # TODO: validate objective functions
             objective_functions_str = data["objective_functions"]
             variables_str = data["variables"]
+            variable_bounds_str = data["variable_bounds"]
+
+            if len(variable_bounds_str) != len(variables_str):
+                return {"message": "Bad number of variable bounds tuples given"}, 406
+
+            # convert the bounds to a numpy array
+            variable_bounds = np.array(list(map(json.loads, variable_bounds_str)))
 
             objective_evaluators = numpify_expressions(objective_functions_str, variables_str)
 
@@ -79,9 +96,11 @@ class ProblemCreation(Resource):
                 _ScalarObjective(f"objective {i+1}", evaluator) for (i, evaluator) in enumerate(objective_evaluators)
             ]
 
-            # TODO: not asking for initial values of bounds for variables yet, initial value
+            # TODO: initial values of variables
             # defaults to 0, bounds are infinity
-            variables = [Variable(x, 0) for x in variables_str]
+            variables = [
+                Variable(x, 0, variable_bounds[i][0], variable_bounds[i][1]) for i, x in enumerate(variables_str)
+            ]
 
             problem = MOProblem(objectives, variables)
 

@@ -1,10 +1,11 @@
-from flask_testing import TestCase
-from app import app, db
-from models.user_models import UserModel
-from models.problem_models import Problem
+import json
+
 import numpy as np
 import numpy.testing as npt
-import json
+from app import app, db
+from flask_testing import TestCase
+from models.problem_models import Problem
+from models.user_models import UserModel
 
 
 class TestProblem(TestCase):
@@ -53,9 +54,10 @@ class TestProblem(TestCase):
             data=payload,
         )
 
-        # 406
-        assert response.status_code == 406
+        # 400
+        assert response.status_code == 400
 
+        # Missing variable bounds
         # three objective functions given
         obj_fun_1 = "2*x-y"
         obj_fun_2 = "x+2*y/z"
@@ -79,6 +81,27 @@ class TestProblem(TestCase):
             data=payload,
         )
 
+        # 406
+        assert response.status_code == 400
+
+        variable_bounds = [[-5, 5], [-15, 15], [-20, 20]]
+
+        payload = json.dumps(
+            {
+                "problem_type": "Analytical",
+                "name": "analytical_test_problem",
+                "objective_functions": objectives,
+                "variables": variables,
+                "variable_bounds": variable_bounds,
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
         assert response.status_code == 201
 
         # fetch problem and check it
@@ -91,6 +114,10 @@ class TestProblem(TestCase):
         assert problem.problem_type == "Analytical"
 
         unpickled = problem.problem_pickle
+
+        assert unpickled.variables[0].get_bounds() == (-5, 5)
+        assert unpickled.variables[1].get_bounds() == (-15, 15)
+        assert unpickled.variables[2].get_bounds() == (-20, 20)
 
         res = unpickled.evaluate(np.array([[2, 1, 3], [3, 2, 1]])).objectives
 
