@@ -1,12 +1,13 @@
 from datetime import timedelta
 
 from flask import Flask
+from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_restful import Api
 from flask_sqlalchemy import SQLAlchemy
 
-
 app = Flask(__name__)
+CORS(app)
 
 api = Api(app)
 
@@ -31,8 +32,7 @@ def create_tables():
 
 
 from models import user_models  # noqa: E402
-from resources import user_resources, problem_resources  # noqa: E402
-
+from resources import problem_resources, user_resources  # noqa: E402
 
 # import views
 

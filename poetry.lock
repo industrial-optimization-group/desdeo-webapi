@@ -198,6 +198,18 @@ docs = ["sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-
 dotenv = ["python-dotenv"]
 
 [[package]]
+name = "flask-cors"
+version = "3.0.10"
+description = "A Flask extension adding a decorator for CORS support"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+Flask = ">=0.9"
+Six = "*"
+
+[[package]]
 name = "flask-jwt-extended"
 version = "4.0.2"
 description = "Extended JWT integration with Flask"
@@ -660,7 +672,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "5258f0d740a7aabfeb0e040d9fe6db43b172024600ad0b4109b758f6302c8720"
+content-hash = "32de16017ae7b0ab453824ce448496d810695b4af5c567a81b8391381f2dcf39"
 
 [metadata.files]
 aniso8601 = [
@@ -724,6 +736,10 @@ flake8 = [
 flask = [
     {file = "Flask-1.1.2-py2.py3-none-any.whl", hash = "sha256:8a4fdd8936eba2512e9c85df320a37e694c93945b33ef33c89946a340a238557"},
     {file = "Flask-1.1.2.tar.gz", hash = "sha256:4efa1ae2d7c9865af48986de8aeb8504bf32c7f3d6fdc9353d34b21f4b127060"},
+]
+flask-cors = [
+    {file = "Flask-Cors-3.0.10.tar.gz", hash = "sha256:b60839393f3b84a0f3746f6cdca56c1ad7426aa738b70d6c61375857823181de"},
+    {file = "Flask_Cors-3.0.10-py2.py3-none-any.whl", hash = "sha256:74efc975af1194fc7891ff5cd85b0f7478be4f7f59fe158102e91abb72bb4438"},
 ]
 flask-jwt-extended = [
     {file = "Flask-JWT-Extended-4.0.2.tar.gz", hash = "sha256:d42015246f61cf7baea474de0657542eb2c3d9b4322cbeac062a418297b265ac"},

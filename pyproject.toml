@@ -15,6 +15,7 @@ Flask-SQLAlchemy = "^2.4.4"
 passlib = "^1.7.4"
 dill = "^0.3.3"
 sympy = "^1.7.1"
+Flask-Cors = "^3.0.10"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"
