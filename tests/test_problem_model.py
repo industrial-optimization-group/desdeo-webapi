@@ -85,14 +85,21 @@ class TestProblem(TestCase):
         assert response.status_code == 400
 
         variable_bounds = [[-5, 5], [-15, 15], [-20, 20]]
+        initial_values = [5, 2, 3]
+        variable_names = ["speed", "luck", "dex"]
+
+        objective_names = ["profit", "loss", "impact"]
 
         payload = json.dumps(
             {
                 "problem_type": "Analytical",
                 "name": "analytical_test_problem",
                 "objective_functions": objectives,
+                "objective_names": objective_names,
                 "variables": variables,
+                "variable_initial_values": initial_values,
                 "variable_bounds": variable_bounds,
+                "variable_names": variable_names,
             }
         )
 
@@ -114,6 +121,13 @@ class TestProblem(TestCase):
         assert problem.problem_type == "Analytical"
 
         unpickled = problem.problem_pickle
+
+        assert unpickled.get_variable_names() == variable_names
+        assert unpickled.get_objective_names() == objective_names
+
+        assert unpickled.variables[0].current_value == 5
+        assert unpickled.variables[1].current_value == 2
+        assert unpickled.variables[2].current_value == 3
 
         assert unpickled.variables[0].get_bounds() == (-5, 5)
         assert unpickled.variables[1].get_bounds() == (-15, 15)
