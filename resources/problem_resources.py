@@ -83,7 +83,10 @@ problem_create_parser.add_argument(
 
 class ProblemCreation(Resource):
     def get(self):
-        return "Available problem types", 200
+        response = {
+            "available_problem_types": available_problem_types,
+        }
+        return response, 200
 
     @jwt_required()
     def post(self):
