@@ -93,6 +93,16 @@ problem_create_parser.add_argument(
     required=False,
     action="append",
 )
+problem_create_parser.add_argument(
+    "minimize",
+    type=str,
+    help=(
+        "A list of either 1's or -1's depending whether an objective is to be minimized or maximized. Defaults to all"
+        "objectives to be minimized."
+    ),
+    required=False,
+    action="append",
+)
 
 
 class ProblemCreation(Resource):
@@ -161,6 +171,14 @@ class ProblemCreation(Resource):
             else:
                 nadir = np.array(data["nadir"]).astype(float)
 
+            if data["minimize"] is None:
+                minimize = [1 for i in range(len(data["objective_functions"]))]
+            elif len(data["minimize"]) != len(data["objective_functions"]):
+                msg = "minimize has a wrong number of components"
+                return {"message": msg}, 406
+            else:
+                minimize = list(map(int, data["minimize"]))
+
             # TODO: validate objective functions
             objective_functions_str = data["objective_functions"]
             variables_str = data["variables"]
@@ -195,6 +213,7 @@ class ProblemCreation(Resource):
                     problem_type=data["problem_type"],
                     problem_pickle=problem,
                     user_id=current_user_id,
+                    minimize=json.dumps(minimize),
                 )
             )
             db.session.commit()

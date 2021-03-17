@@ -93,6 +93,8 @@ class TestProblem(TestCase):
         ideal = [10, 20, 30]
         nadir = [-10, -20, -30]
 
+        minimize = [1, -1, 1]
+
         payload = json.dumps(
             {
                 "problem_type": "Analytical",
@@ -105,6 +107,7 @@ class TestProblem(TestCase):
                 "variable_names": variable_names,
                 "ideal": ideal,
                 "nadir": nadir,
+                "minimize": minimize,
             }
         )
 
@@ -124,6 +127,7 @@ class TestProblem(TestCase):
         assert problem.name == "analytical_test_problem"
         assert problem.user_id == user_id
         assert problem.problem_type == "Analytical"
+        npt.assert_almost_equal(json.loads(problem.minimize), minimize)
 
         unpickled = problem.problem_pickle
 
