@@ -79,6 +79,20 @@ problem_create_parser.add_argument(
     required=True,
     action="append",
 )
+problem_create_parser.add_argument(
+    "ideal",
+    type=str,
+    help=("The ideal point of the multiobjective optimization problem."),
+    required=False,
+    action="append",
+)
+problem_create_parser.add_argument(
+    "nadir",
+    type=str,
+    help=("The nadir point of the multiobjective optimization problem."),
+    required=False,
+    action="append",
+)
 
 
 class ProblemCreation(Resource):
@@ -131,6 +145,22 @@ class ProblemCreation(Resource):
                 msg = "Bad number of initial variable values given"
                 return {"message": msg}, 406
 
+            if data["ideal"] is None:
+                ideal = None
+            elif len(data["ideal"]) != len(data["objective_functions"]):
+                msg = "Ideal point has wrong number of components"
+                return {"message": msg}, 406
+            else:
+                ideal = np.array(data["ideal"]).astype(float)
+
+            if data["nadir"] is None:
+                nadir = None
+            elif len(data["nadir"]) != len(data["objective_functions"]):
+                msg = "Nadir point has wrong number of components"
+                return {"message": msg}, 406
+            else:
+                nadir = np.array(data["nadir"]).astype(float)
+
             # TODO: validate objective functions
             objective_functions_str = data["objective_functions"]
             variables_str = data["variables"]
@@ -154,7 +184,7 @@ class ProblemCreation(Resource):
                 for i, x in enumerate(variables_str)
             ]
 
-            problem = MOProblem(objectives, variables)
+            problem = MOProblem(objectives, variables, ideal=ideal, nadir=nadir)
 
             current_user = get_jwt_identity()
             current_user_id = UserModel.query.filter_by(username=current_user).first().id

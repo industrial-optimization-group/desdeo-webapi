@@ -90,6 +90,9 @@ class TestProblem(TestCase):
 
         objective_names = ["profit", "loss", "impact"]
 
+        ideal = [10, 20, 30]
+        nadir = [-10, -20, -30]
+
         payload = json.dumps(
             {
                 "problem_type": "Analytical",
@@ -100,6 +103,8 @@ class TestProblem(TestCase):
                 "variable_initial_values": initial_values,
                 "variable_bounds": variable_bounds,
                 "variable_names": variable_names,
+                "ideal": ideal,
+                "nadir": nadir,
             }
         )
 
@@ -132,6 +137,9 @@ class TestProblem(TestCase):
         assert unpickled.variables[0].get_bounds() == (-5, 5)
         assert unpickled.variables[1].get_bounds() == (-15, 15)
         assert unpickled.variables[2].get_bounds() == (-20, 20)
+
+        npt.assert_almost_equal(unpickled.ideal, ideal)
+        npt.assert_almost_equal(unpickled.nadir, nadir)
 
         res = unpickled.evaluate(np.array([[2, 1, 3], [3, 2, 1]])).objectives
 
