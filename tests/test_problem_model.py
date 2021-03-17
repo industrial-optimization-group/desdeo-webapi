@@ -61,7 +61,7 @@ class TestProblem(TestCase):
         # three objective functions given
         obj_fun_1 = "2*x-y"
         obj_fun_2 = "x+2*y/z"
-        obj_fun_3 = "x+y+z"
+        obj_fun_3 = "x+y+z+x"
         objectives = [obj_fun_1, obj_fun_2, obj_fun_3]
 
         variables = ["x", "y", "z"]
@@ -121,5 +121,5 @@ class TestProblem(TestCase):
 
         res = unpickled.evaluate(np.array([[2, 1, 3], [3, 2, 1]])).objectives
 
-        npt.assert_almost_equal(res[0], np.array([3, 2.66666666, 6]))
-        npt.assert_almost_equal(res[1], np.array([4, 7, 6]))
+        npt.assert_almost_equal(res[0], np.array([3, 2.66666666, 8]))
+        npt.assert_almost_equal(res[1], np.array([4, 7, 9]))
