@@ -105,6 +105,28 @@ problem_create_parser.add_argument(
 )
 
 
+class ProblemAccess(Resource):
+    @jwt_required()
+    def get(self):
+        current_user = get_jwt_identity()
+        current_user_id = UserModel.query.filter_by(username=current_user).first().id
+
+        try:
+            problems = Problem.query.filter_by(user_id=current_user_id).all()
+
+            response = {
+                "problems": [
+                    {"id": problem.id, "name": problem.name, "problem_type": problem.problem_type}
+                    for problem in problems
+                ]
+            }
+
+            return response, 200
+        except Exception as e:
+            print(f"DEBUG: {e}")
+            return {"message": "Could not fetch problems!"}, 404
+
+
 class ProblemCreation(Resource):
     @jwt_required()
     def get(self):

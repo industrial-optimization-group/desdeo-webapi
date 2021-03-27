@@ -55,3 +55,4 @@ api.add_resource(user_resources.SecretResource, "/secret")
 
 # Add problem endpoints
 api.add_resource(problem_resources.ProblemCreation, "/problem/create")
+api.add_resource(problem_resources.ProblemAccess, "/problem/access")

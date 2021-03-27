@@ -22,11 +22,96 @@ class TestProblem(TestCase):
         self.app = app.test_client()
 
         db.session.add(UserModel(username="test_user", password=UserModel.generate_hash("pass")))
+        db.session.add(UserModel(username="sad_user", password=UserModel.generate_hash("pass")))
         db.session.commit()
+
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        problem_def = {
+            "problem_type": "Analytical",
+            "name": "setup_test_problem_1",
+            "objective_functions": ["x+y", "x-z", "z+y+x"],
+            "objective_names": ["f1", "f2", "f3"],
+            "variables": ["x", "y", "z"],
+            "variable_initial_values": [0, 0, 0],
+            "variable_bounds": [[-10, 10], [-10, 10], [-10, 10]],
+            "variable_names": ["x", "y", "z"],
+            "ideal": [10, 20, 30],
+            "nadir": [-10, -20, -30],
+            "minimize": [1, -1, 1],
+        }
+
+        payload = json.dumps(problem_def)
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        problem_def["name"] = "setup_test_problem_2"
+        payload = json.dumps(problem_def)
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        problem_def["name"] = "setup_test_problem_3"
+        payload = json.dumps(problem_def)
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 201
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
+
+    def test_access_problem(self):
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        response = self.app.get(
+            "/problem/access",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # ok
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        # the three problems defined in set_up
+        assert len(data["problems"]) == 3
+
+        payload = json.dumps({"username": "sad_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        response = self.app.get(
+            "/problem/access",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # ok
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        # no problems defined in set_up for sad user!
+        assert len(data["problems"]) == 0
 
     def test_get_problem(self):
         response = self.app.get("/problem/create")
@@ -136,11 +221,11 @@ class TestProblem(TestCase):
         assert response.status_code == 201
 
         # fetch problem and check it
-        user_id = UserModel.query.filter_by(username="test_user").first().id
-
-        problem = Problem.query.filter_by(user_id=user_id).first()
+        problem = Problem.query.filter_by(name="analytical_test_problem").first()
 
         assert problem.name == "analytical_test_problem"
+
+        user_id = UserModel.query.filter_by(username="test_user").first().id
         assert problem.user_id == user_id
         assert problem.problem_type == "Analytical"
         npt.assert_almost_equal(json.loads(problem.minimize), minimize)
