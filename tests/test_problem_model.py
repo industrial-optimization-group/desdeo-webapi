@@ -31,7 +31,23 @@ class TestProblem(TestCase):
     def test_get_problem(self):
         response = self.app.get("/problem/create")
 
+        # unauthorized
+        assert response.status_code == 401
+
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+
         assert response.status_code == 200
+
+        data = json.loads(response.data)
+        response = self.app.get(
+            "/problem/create",
+            headers={"Authorization": f"Bearer {data['access_token']}"},
+        )
+
+        data = json.loads(response.data)
+
+        assert data["available_problem_types"] is not None
 
     def test_create_analytical_problem(self):
         payload = json.dumps({"username": "test_user", "password": "pass"})
