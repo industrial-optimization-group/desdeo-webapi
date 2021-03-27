@@ -9,7 +9,7 @@ dill.settings["recurse"] = True
 
 
 class Problem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, unique=True)
     name = db.Column(db.String(120), nullable=False)
     problem_type = db.Column(db.String(120), nullable=False)
     problem_pickle = db.Column(db.PickleType(pickler=dill))

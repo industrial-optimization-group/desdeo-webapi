@@ -1,11 +1,10 @@
-from passlib.hash import pbkdf2_sha256 as sha256
-
 from app import db
+from passlib.hash import pbkdf2_sha256 as sha256
 
 
 class UserModel(db.Model):
     __tablename__ = "user"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, unique=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
     problems = db.relationship("Problem", backref="owner", lazy=True)
