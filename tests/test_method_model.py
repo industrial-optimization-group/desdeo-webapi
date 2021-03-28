@@ -121,7 +121,10 @@ class TestMethod(TestCase):
         data = json.loads(response.data)
 
         access_token = data["access_token"]
-        payload = json.dumps({"problem_id": 1})
+        payload = json.dumps({"problem_id": 1, "method": "reference_point_method"})
+
+        # no methods should exist for the user test_user yet
+        assert Method.query.filter_by(user_id=1).all() == []
 
         response = self.app.post(
             "/method/create",
@@ -129,4 +132,23 @@ class TestMethod(TestCase):
             data=payload,
         )
 
-        print(json.loads(response.data), response.status_code)
+        # created
+        assert response.status_code == 201
+
+        # one method should exist for the user test_user
+        assert len(Method.query.filter_by(user_id=1).all()) == 1
+        assert Method.query.filter_by(user_id=1).first().name == "reference_point_method"
+
+        payload = json.dumps({"problem_id": 1, "method": "reference_point_method_alt"})
+        response = self.app.post(
+            "/method/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # one method should still only exist
+        assert len(Method.query.filter_by(user_id=1).all()) == 1
+        assert Method.query.filter_by(user_id=1).first().name == "reference_point_method_alt"
