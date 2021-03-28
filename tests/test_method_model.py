@@ -94,6 +94,7 @@ class TestMethod(TestCase):
 
         method_unpickle = method_pickle.method_pickle
 
+        # check the method
         npt.assert_almost_equal(method_unpickle._problem.nadir, problem.nadir)
         npt.assert_almost_equal(method_unpickle._problem.ideal, problem.ideal)
 
