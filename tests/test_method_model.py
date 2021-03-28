@@ -75,7 +75,7 @@ class TestMethod(TestCase):
         db.session.remove()
         db.drop_all()
 
-    def testCreateModelManual(self):
+    def testCreateModelManually(self):
         # fetch problem
         problem_pickle = Problem.query.filter_by(name="setup_test_problem_1").first()
         problem = problem_pickle.problem_pickle
@@ -99,3 +99,34 @@ class TestMethod(TestCase):
         npt.assert_almost_equal(method_unpickle._problem.ideal, problem.ideal)
 
         assert objective_names == method_unpickle._objective_names
+
+    def testGetMethod(self):
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        response = self.app.get(
+            "/method/create",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # no method should be defined yet
+        assert response.status_code == 404
+
+    def testCreateMethod(self):
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+        payload = json.dumps({"problem_id": 1})
+
+        response = self.app.post(
+            "/method/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        print(json.loads(response.data), response.status_code)
