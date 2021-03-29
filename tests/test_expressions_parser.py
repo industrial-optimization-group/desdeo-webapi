@@ -115,3 +115,11 @@ class TestNumpifyDictItems(unittest.TestCase):
         npt.assert_almost_equal(new_d["item_1"], d["item_1"])
         npt.assert_almost_equal(new_d["item_2"], d["item_2"])
         assert new_d["item_3"] == d["item_3"]
+
+        # int and float elements and boolean
+        d = {"item_1": 1, "item_2": 2.2, "item_3": True}
+        new_d = numpify_dict_items(d)
+
+        assert new_d["item_1"] == d["item_1"]
+        assert new_d["item_2"] == d["item_2"]
+        assert new_d["item_3"] == d["item_3"]

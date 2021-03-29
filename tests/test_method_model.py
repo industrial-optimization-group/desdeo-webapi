@@ -35,15 +35,15 @@ class TestMethod(TestCase):
         problem_def = {
             "problem_type": "Analytical",
             "name": "setup_test_problem_1",
-            "objective_functions": ["x+y", "x-z", "z+y+x"],
+            "objective_functions": ["x / y - z", "y / x - z", "z+y+x"],
             "objective_names": ["f1", "f2", "f3"],
             "variables": ["x", "y", "z"],
             "variable_initial_values": [0, 0, 0],
             "variable_bounds": [[-10, 10], [-10, 10], [-10, 10]],
             "variable_names": ["x", "y", "z"],
-            "ideal": [10, 20, 30],
-            "nadir": [-10, -20, -30],
-            "minimize": [1, -1, 1],
+            "nadir": [10, 20, 30],
+            "ideal": [-10, -20, -30],
+            "minimize": [1, 1, 1],
         }
 
         payload = json.dumps(problem_def)
@@ -232,6 +232,9 @@ class TestMethod(TestCase):
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
+        method_query = Method.query.filter_by(id=1).first()
+        assert method_query.method_pickle._h == 1
+
         # ok
         assert response.status_code == 200
 
@@ -239,7 +242,6 @@ class TestMethod(TestCase):
 
         # for reference point method
         response_dict = {"response": {"reference_point": [5, -15.2, 22.2]}}
-
         payload = json.dumps(response_dict)
 
         # iterate the method
@@ -248,6 +250,67 @@ class TestMethod(TestCase):
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
             data=payload,
         )
+
+        method_query = Method.query.filter_by(id=1).first()
+        assert method_query.method_pickle._h == 1
+
+        # ok
+        assert response.status_code == 200
+
+        # iterate a second time
+        response_dict = {"response": {"satisfied": False, "reference_point": [4, 15.2, 4.2]}}
+        payload = json.dumps(response_dict)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        method_query = Method.query.filter_by(id=1).first()
+        assert method_query.method_pickle._h == 2
+
+        # ok
+        assert response.status_code == 200
+
+        # iterate a third time
+        response_dict = {"response": {"satisfied": False, "reference_point": [2, 15.9, 8.2]}}
+        payload = json.dumps(response_dict)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        method_query = Method.query.filter_by(id=1).first()
+        assert method_query.method_pickle._h == 3
+
+        # ok
+        assert response.status_code == 200
+
+        # stop iterating
+        request_content = json.loads(json.loads(response.data)["response"])
+        choice_idx = 2
+        choice = request_content["additional_solutions"][choice_idx - 1]
+        response_dict = {"response": {"satisfied": True, "solution_index": choice_idx}}
+
+        payload = json.dumps(response_dict)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        method_query = Method.query.filter_by(id=1).first()
+        assert method_query.method_pickle._h == 3
+
+        request_content = json.loads(json.loads(response.data)["response"])
+        final_solution = request_content["objective_vector"]
+        # final_solution_x = request_content["solution"]
+
+        npt.assert_almost_equal(final_solution, choice)
 
         # ok
         assert response.status_code == 200

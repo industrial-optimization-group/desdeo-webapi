@@ -1,6 +1,6 @@
 import json
+from copy import deepcopy
 
-import numpy as np
 from app import db
 from desdeo_mcdm.interactive import ReferencePointMethod
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -8,7 +8,7 @@ from flask_restful import Resource, reqparse
 from models.method_models import Method
 from models.problem_models import Problem
 from models.user_models import UserModel
-from utilities.expression_parser import NumpyEncoder
+from utilities.expression_parser import NumpyEncoder, numpify_dict_items
 
 available_methods = {
     "reference_point_method": ReferencePointMethod,
@@ -36,6 +36,7 @@ method_control_parser.add_argument(
     help="The response to continue iterating the method",
     required=True,
 )
+method_control_parser.add_argument("stop", type=bool, help="Stop and get solution?", default=False)
 
 
 class MethodCreate(Resource):
@@ -136,7 +137,9 @@ class MethodControl(Resource):
             # wrong method status, bad request
             return {"message": "Method has already been started."}, 400
 
-        method = method_query.method_pickle
+        # need to make deepcopy to have a new mem addres so that sqlalchemy updates the pickle
+        # TODO: use a Mutable column
+        method = deepcopy(method_query.method_pickle)
 
         # start the method and ser response
         request = method.start()
@@ -145,15 +148,16 @@ class MethodControl(Resource):
         # set status to iterating and last_request
         method_query.status = "ITERATING"
         method_query.last_request = request
+        method_query.method_pickle = method
         db.session.commit()
 
         # ok
-        return response, 200
+        return {"response": response}, 200
 
     @jwt_required()
     def post(self):
         data = method_control_parser.parse_args()
-        user_response = data["response"]
+        user_response_raw = data["response"]
 
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
@@ -173,18 +177,13 @@ class MethodControl(Resource):
             # method has no last request defined, bas request
             return {"message": "The method has no last request defined."}, 400
 
-        method = method_query.method_pickle
+        # need to make deepcopy to have a new mem addres so that sqlalchemy updates the pickle
+        # TODO: use a Mutable column
+        method = deepcopy(method_query.method_pickle)
         last_request = method_query.last_request
 
         # cast lists, which have numerical content, to numpy arrays
-        print(user_response)
-        user_response = {
-            (key): (np.array(value) if type(value) is list else value) for key, value in user_response.items()
-        }
-        print(user_response)
-
-        # delete me
-        return {}, 200
+        user_response = numpify_dict_items(user_response_raw)
 
         last_request.response = user_response
 
@@ -206,4 +205,4 @@ class MethodControl(Resource):
         response = json.dumps(new_request.content, cls=NumpyEncoder)
 
         # ok
-        return response, 200
+        return {"response": response}, 200
