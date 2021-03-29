@@ -153,7 +153,7 @@ class TestMethod(TestCase):
         assert len(Method.query.filter_by(user_id=1).all()) == 1
         assert Method.query.filter_by(user_id=1).first().name == "reference_point_method_alt"
 
-    def testMethodControl(self):
+    def testMethodControlGet(self):
         payload = json.dumps({"username": "test_user", "password": "pass"})
         response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
         data = json.loads(response.data)
@@ -201,6 +201,53 @@ class TestMethod(TestCase):
 
         assert method_query.status == "ITERATING"
         assert method_query.last_request is not None
+
+        # ok
+        assert response.status_code == 200
+
+    def testMethodControlPost(self):
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+        payload = json.dumps({"problem_id": 1, "method": "reference_point_method"})
+
+        # no methods should exist for the user test_user yet
+        assert Method.query.filter_by(user_id=1).all() == []
+
+        # create method
+        response = self.app.post(
+            "/method/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # start the method
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # ok
+        assert response.status_code == 200
+
+        # request_content = json.loads(response.data)
+
+        # for reference point method
+        response_dict = {"response": {"reference_point": [5, -15.2, 22.2]}}
+
+        payload = json.dumps(response_dict)
+
+        # iterate the method
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
 
         # ok
         assert response.status_code == 200

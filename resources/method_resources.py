@@ -1,5 +1,6 @@
 import json
 
+import numpy as np
 from app import db
 from desdeo_mcdm.interactive import ReferencePointMethod
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -25,6 +26,14 @@ method_create_parser.add_argument(
     "method",
     type=str,
     help=(f"Specify which method to use. Available methods are: {list(available_methods.keys())}"),
+    required=True,
+)
+
+method_control_parser = reqparse.RequestParser()
+method_control_parser.add_argument(
+    "response",
+    type=dict,
+    help="The response to continue iterating the method",
     required=True,
 )
 
@@ -137,6 +146,64 @@ class MethodControl(Resource):
         method_query.status = "ITERATING"
         method_query.last_request = request
         db.session.commit()
+
+        # ok
+        return response, 200
+
+    @jwt_required()
+    def post(self):
+        data = method_control_parser.parse_args()
+        user_response = data["response"]
+
+        current_user = get_jwt_identity()
+        current_user_id = UserModel.query.filter_by(username=current_user).first().id
+
+        # check if any method has been defined
+        method_query = Method.query.filter_by(user_id=current_user_id).first()
+
+        if method_query is None:
+            # not found
+            return {"message": "No defined method found for the current user."}, 404
+
+        if method_query.status != "ITERATING":
+            # wrong method status, bad request
+            return {"message": "Method has not been started or is finished."}, 400
+
+        if method_query.last_request is None:
+            # method has no last request defined, bas request
+            return {"message": "The method has no last request defined."}, 400
+
+        method = method_query.method_pickle
+        last_request = method_query.last_request
+
+        # cast lists, which have numerical content, to numpy arrays
+        print(user_response)
+        user_response = {
+            (key): (np.array(value) if type(value) is list else value) for key, value in user_response.items()
+        }
+        print(user_response)
+
+        # delete me
+        return {}, 200
+
+        last_request.response = user_response
+
+        try:
+            # attempt to iterate and update method and last_request pickles
+            new_request = method.iterate(last_request)
+            method_query.method_pickle = method
+            method_query.last_request = new_request
+            db.session.commit()
+        except Exception as e:
+            print(f"DEBUG: {e}")
+            # error, could not iterate, internal server error
+            last_request_dump = json.dumps(last_request.content, cls=NumpyEncoder)
+            return {
+                "message": "Could not iterate the method with the given response",
+                "last_request": last_request_dump,
+            }, 500
+
+        response = json.dumps(new_request.content, cls=NumpyEncoder)
 
         # ok
         return response, 200

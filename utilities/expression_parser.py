@@ -42,6 +42,38 @@ def numpify_expressions(expressions: List[str], variables: List[str]):
     return arrified_functions
 
 
+def recurse_check_lists_for_element_type(lst: list, types: tuple = (float, int)):
+    # check if the items in a list lst are all of type types. Recursively descends into
+    # sublists of lst
+    if not lst:
+        return True
+    elif isinstance(lst, list):
+        return recurse_check_lists_for_element_type(
+            lst[0] if len(lst) > 0 else []
+        ) and recurse_check_lists_for_element_type(lst[1:] if len(lst) > 1 else [])
+    elif isinstance(lst, types):
+        return True
+    else:
+        return False
+
+
+def numpify_dict_items(dictionary: dict):
+    # in the given dictionary, cast Python lists with numerical data to numpy arrays.
+    # Leaves other items in the dictionary intact. Also leaves list with numpy incompatible dimensions intact
+    new_dict = {
+        (key): (
+            np.array(value)
+            if isinstance(value, list)
+            and recurse_check_lists_for_element_type(value)
+            and np.array(value).dtype != np.dtype("object")
+            else value
+        )
+        for key, value in dictionary.items()
+    }
+
+    return new_dict
+
+
 if __name__ == "__main__":
     exprs = ["x+y", "z+x"]
     variables = ["x", "y", "z"]
