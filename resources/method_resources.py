@@ -1,3 +1,5 @@
+import json
+
 from app import db
 from desdeo_mcdm.interactive import ReferencePointMethod
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -5,6 +7,7 @@ from flask_restful import Resource, reqparse
 from models.method_models import Method
 from models.problem_models import Problem
 from models.user_models import UserModel
+from utilities.expression_parser import NumpyEncoder
 
 available_methods = {
     "reference_point_method": ReferencePointMethod,
@@ -90,7 +93,14 @@ class MethodCreate(Resource):
 
         # add method to db
         db.session.add(
-            Method(name=method_name, method_pickle=method, user_id=current_user_id, minimize=problem_minimize)
+            Method(
+                name=method_name,
+                method_pickle=method,
+                user_id=current_user_id,
+                minimize=problem_minimize,
+                status="NOT STARTED",
+                last_request=None,
+            )
         )
         db.session.commit()
 
@@ -98,3 +108,35 @@ class MethodCreate(Resource):
 
         # created
         return response, 201
+
+
+class MethodControl(Resource):
+    @jwt_required()
+    def get(self):
+        current_user = get_jwt_identity()
+        current_user_id = UserModel.query.filter_by(username=current_user).first().id
+
+        # check if any method has been defined
+        method_query = Method.query.filter_by(user_id=current_user_id).first()
+
+        if method_query is None:
+            # not found
+            return {"message": "No defined method found for the current user."}, 404
+
+        if method_query.status != "NOT STARTED":
+            # wrong method status, bad request
+            return {"message": "Method has already been started."}, 400
+
+        method = method_query.method_pickle
+
+        # start the method and ser response
+        request = method.start()
+        response = json.dumps(request.content, cls=NumpyEncoder)
+
+        # set status to iterating and last_request
+        method_query.status = "ITERATING"
+        method_query.last_request = request
+        db.session.commit()
+
+        # ok
+        return response, 200

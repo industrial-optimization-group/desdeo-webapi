@@ -12,6 +12,12 @@ class Method(db.Model):
     method_pickle = db.Column(db.PickleType(pickler=dill))
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     minimize = db.Column(db.String(120), nullable=False)
+    # status of the method. Options: ["NOT STARTED", "ITERATING", "FINISHED"]
+    status = db.Column(db.String(120), nullable=True)
+    last_request = db.Column(db.PickleType(pickler=dill), nullable=True)
 
     def __repr__(self):
-        return f"Method = id:{self.id}, name:{self.name}, user_id:{self.user_id}, minimize:{self.minimize}"
+        return (
+            f"Method = id:{self.id}, name:{self.name}, user_id:{self.user_id}, minimize:{self.minimize}, "
+            f"status:{self.status}, last_request:{self.last_request}"
+        )

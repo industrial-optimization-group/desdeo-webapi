@@ -59,3 +59,4 @@ api.add_resource(problem_resources.ProblemAccess, "/problem/access")
 
 # Ass method endpoints
 api.add_resource(method_resources.MethodCreate, "/method/create")
+api.add_resource(method_resources.MethodControl, "/method/control")

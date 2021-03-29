@@ -1,8 +1,17 @@
-from sympy import symbols, lambdify
+import json
 from typing import List
-from sympy.parsing.sympy_parser import parse_expr
-import numpy as np
+
 import dill
+import numpy as np
+from sympy import lambdify, symbols
+from sympy.parsing.sympy_parser import parse_expr
+
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 
 def numpify_expressions(expressions: List[str], variables: List[str]):

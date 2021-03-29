@@ -152,3 +152,55 @@ class TestMethod(TestCase):
         # one method should still only exist
         assert len(Method.query.filter_by(user_id=1).all()) == 1
         assert Method.query.filter_by(user_id=1).first().name == "reference_point_method_alt"
+
+    def testMethodControl(self):
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+        payload = json.dumps({"problem_id": 1, "method": "reference_point_method"})
+
+        # no methods should exist for the user test_user yet
+        assert Method.query.filter_by(user_id=1).all() == []
+
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # not found
+        assert response.status_code == 404
+
+        # create method
+        response = self.app.post(
+            "/method/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # check that no request is set and status is NOT STARTED
+        assert len(Method.query.filter_by(user_id=1).all()) == 1
+        method_query = Method.query.filter_by(user_id=1).first()
+
+        assert method_query.status == "NOT STARTED"
+        assert method_query.last_request is None
+
+        # get
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # check that a request is set and status is ITERATING
+        assert len(Method.query.filter_by(user_id=1).all()) == 1
+        method_query = Method.query.filter_by(user_id=1).first()
+
+        assert method_query.status == "ITERATING"
+        assert method_query.last_request is not None
+
+        # ok
+        assert response.status_code == 200
