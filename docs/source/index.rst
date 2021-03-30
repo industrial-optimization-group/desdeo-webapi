@@ -10,6 +10,7 @@ Welcome to desdeo-restful's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   restful
 
 
 Indices and tables

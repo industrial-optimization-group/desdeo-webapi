@@ -1,9 +1,8 @@
 from datetime import datetime, timezone
 
+from app import db
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required
 from flask_restful import Resource, reqparse
-
-from app import db
 from models.user_models import TokenBlocklist, UserModel
 
 parser = reqparse.RequestParser()
@@ -16,7 +15,7 @@ class UserRegistration(Resource):
         data = parser.parse_args()
 
         if UserModel.find_by_username(data["username"]):
-            return {"message": f"User {data['username']} already exists!"}
+            return {"message": f"User {data['username']} already exists!"}, 400
 
         new_user = UserModel(username=data["username"], password=UserModel.generate_hash(data["password"]))
         try:
@@ -27,7 +26,7 @@ class UserRegistration(Resource):
                 "message": f"User {data['username']} was created!",
                 "access_token": access_token,
                 "refresh_token": refresh_token,
-            }
+            }, 200
         except Exception as e:
             print(f"DEBUG: {e}")
             return {"message": "Something went wrong"}, 500
