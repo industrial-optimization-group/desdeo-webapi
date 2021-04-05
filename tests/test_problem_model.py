@@ -220,7 +220,7 @@ class TestProblem(TestCase):
 
         assert response.status_code == 201
 
-        # fetch problem and check it
+        # fetch problem and check
         problem = Problem.query.filter_by(name="analytical_test_problem").first()
 
         assert problem.name == "analytical_test_problem"
@@ -250,3 +250,47 @@ class TestProblem(TestCase):
 
         npt.assert_almost_equal(res[0], np.array([3, 2.66666666, 8]))
         npt.assert_almost_equal(res[1], np.array([4, 7, 9]))
+
+    def test_access_specific_problem(self):
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        payload = json.dumps({"problem_id": 999})
+
+        response = self.app.post(
+            "/problem/access",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        # 404
+        # Problem with id 999 should not exist
+        assert response.status_code == 404
+
+        payload = json.dumps({"problem_id": 1})
+
+        response = self.app.post(
+            "/problem/access",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        # 200
+        # Problem with id 1 should exis
+        resp_dict = json.loads(response.data)
+        orig_query = Problem.query.filter_by(name="setup_test_problem_1").first()
+        orig_prob = orig_query.problem_pickle
+
+        assert resp_dict["objective_names"] == orig_prob.get_objective_names()
+        assert resp_dict["objective_names"] == orig_prob.get_objective_names()
+        npt.assert_almost_equal(resp_dict["ideal"], orig_prob.ideal)
+        npt.assert_almost_equal(resp_dict["nadir"], orig_prob.nadir)
+        assert resp_dict["n_objectives"] == orig_prob.n_of_objectives
+        assert resp_dict["problem_name"] == orig_query.name
+        assert resp_dict["problem_type"] == orig_query.problem_type
+        assert resp_dict["problem_id"] == orig_query.id
+
+        assert response.status_code == 200

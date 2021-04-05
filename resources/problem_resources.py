@@ -104,6 +104,15 @@ problem_create_parser.add_argument(
     action="append",
 )
 
+# Problem access parser
+problem_access_parser = reqparse.RequestParser()
+problem_access_parser.add_argument(
+    "problem_id",
+    type=int,
+    help="Specify the id of the problem to be accessed.",
+    required=True,
+)
+
 
 class ProblemAccess(Resource):
     @jwt_required()
@@ -111,6 +120,7 @@ class ProblemAccess(Resource):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
 
+        # TODO: remove try catch block and check the problems query
         try:
             problems = Problem.query.filter_by(user_id=current_user_id).all()
 
@@ -125,6 +135,55 @@ class ProblemAccess(Resource):
         except Exception as e:
             print(f"DEBUG: {e}")
             return {"message": "Could not fetch problems!"}, 404
+
+    @jwt_required()
+    def post(self):
+        current_user = get_jwt_identity()
+        current_user_id = UserModel.query.filter_by(username=current_user).first().id
+
+        data = problem_access_parser.parse_args()
+
+        problem_query = Problem.query.filter_by(user_id=current_user_id, id=data["problem_id"]).first()
+
+        print(problem_query)
+
+        if not problem_query:
+            # problem not found, 404
+            return {"message": f"Problem with id {data['problem_id']} not found"}, 404
+
+        try:
+            # from model
+            problem_id = problem_query.id
+            minimize = problem_query.minimize
+            problem_name = problem_query.name
+            problem_type = problem_query.problem_type
+
+            # from MOProblem
+            problem_pickle = problem_query.problem_pickle
+            objective_names = problem_pickle.get_objective_names()
+            variable_names = problem_pickle.get_variable_names()
+            ideal = problem_pickle.ideal.tolist()
+            nadir = problem_pickle.nadir.tolist()
+            n_objectives = problem_pickle.n_of_objectives
+
+            response = {
+                "objective_names": objective_names,
+                "variable_names": variable_names,
+                "ideal": ideal,
+                "nadir": nadir,
+                "n_objectives": n_objectives,
+                "minimize": minimize,
+                "problem_name": problem_name,
+                "problem_type": problem_type,
+                "problem_id": problem_id,
+            }
+
+            # all ok, 200
+            return response, 200
+
+        except Exception as e:
+            print(f"DEBUG: {e}")
+            return {"message": "Encountered internal error while fetching problem"}, 500
 
 
 class ProblemCreation(Resource):
