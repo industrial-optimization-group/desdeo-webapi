@@ -141,7 +141,7 @@ class MethodControl(Resource):
         # TODO: use a Mutable column
         method = deepcopy(method_query.method_pickle)
 
-        # start the method and ser response
+        # start the method and set response
         request = method.start()
         response = json.dumps(request.content, cls=NumpyEncoder)
 
@@ -152,7 +152,7 @@ class MethodControl(Resource):
         db.session.commit()
 
         # ok
-        return {"response": response}, 200
+        return {"response": json.loads(response)}, 200
 
     @jwt_required()
     def post(self):
