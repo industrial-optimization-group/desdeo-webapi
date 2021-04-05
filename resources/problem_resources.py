@@ -172,7 +172,7 @@ class ProblemAccess(Resource):
                 "ideal": ideal,
                 "nadir": nadir,
                 "n_objectives": n_objectives,
-                "minimize": minimize,
+                "minimize": json.loads(minimize),
                 "problem_name": problem_name,
                 "problem_type": problem_type,
                 "problem_id": problem_id,

@@ -292,5 +292,6 @@ class TestProblem(TestCase):
         assert resp_dict["problem_name"] == orig_query.name
         assert resp_dict["problem_type"] == orig_query.problem_type
         assert resp_dict["problem_id"] == orig_query.id
+        npt.assert_almost_equal(resp_dict["minimize"], json.loads(orig_query.minimize))
 
         assert response.status_code == 200
