@@ -49,7 +49,7 @@ Login and Registration
     :reqheader Accept: Supported ``application/json``
     :resheader Content-Type: ``application/json``
 
-    :statuscode 200: no error
+    :statuscode 200: logged in as ``username``
     :statuscode 404: ``username`` does not exist
     :statuscode 500: internal server error
 
@@ -91,7 +91,7 @@ Login and Registration
     :>json string access_token: A JWT to authenticate the user ``username`` in further requests.
     :>json string refresh_token: A JWT to refresh the ``access_token`` once it expires.
 
-    :statuscode 200: no error
+    :statuscode 200: new user registered
     :statuscode 400: given ``username`` is not a valid username
     :statuscode 500: internal server error
 
@@ -154,3 +154,39 @@ Managing multiobjective optimization problems
 
 Create and operate methods for solving multiobjective optimization problems
 ---------------------------------------------------------------------------
+
+.. http:get:: /method/control
+
+    Start iterating a previously defined method. In practice, we call the ``start()`` method of an interactive method in DESDEO
+    and return the first request (not to be confused with an HTTP request) resulting from the method call to ``start()``.
+    The ``GET`` request should have no body, only the Authorization header. This works because only one method per user 
+    can be active at any given time. It is therefore enough to only know the identity of the user.
+
+    **Example request**
+
+    .. sourcecode:: http
+
+      GET /problem/access HTTP/1.1
+      Host: example.com 
+
+    **Example response**
+
+    .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Vary: Accept
+      Content-Type: application/json
+
+      {
+        "response": {"message": "Helpful message", "..."},
+      }
+
+    :reqheader Authorization: An JWT access token. Example ``Bearer <access token>``
+
+    :>json object response: A JSON-object with varying contents. Refer to the ``message`` entry of the ``response``
+      for additional information. 
+
+    :statuscode 200: ok, method started
+    :statuscode 400: the currently active method has already been started
+    :statuscode 401: unauthorized, check the access token
+    :statuscode 404: no defined method found for the current user
