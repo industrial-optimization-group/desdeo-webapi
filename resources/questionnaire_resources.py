@@ -4,8 +4,7 @@ from flask_restful import Resource, reqparse
 from models.questionnaire_models import QuestionLikert, QuestionOpen
 from models.user_models import UserModel
 
-available_questionnaires = ["after_solution_process"]
-
+"""
 questionnaire_get_parser = reqparse.RequestParser()
 questionnaire_get_parser.add_argument(
     "questionnaire_type",
@@ -13,6 +12,7 @@ questionnaire_get_parser.add_argument(
     help=f"The type of questionnaire to get. Available types are {available_questionnaires}",
     required=True,
 )
+"""
 
 
 def create_likert(name: str, question_txt: str):
@@ -27,18 +27,9 @@ def create_open(name: str, question_txt: str):
     return {"type": "open", "name": name, "question_txt": question_txt, "answer": ""}
 
 
-class QuestionnaireGet(Resource):
+class QuestionnaireAfterSolutionProcess(Resource):
     @jwt_required()
     def get(self):
-        data = questionnaire_get_parser.parse_args()
-        questionnaire_type = data["questionnaire_type"]
-
-        if questionnaire_type not in available_questionnaires:
-            return {"message": f"Requested questionnaire type {questionnaire_type} not found."}, 404
-
-        # create the questions and send them
-        # TODO: if new questionnaire types get added, create an if-structure here
-
         questions = []
 
         questions.append(create_open("DP_1-1", "Why did you stop iterating?"))

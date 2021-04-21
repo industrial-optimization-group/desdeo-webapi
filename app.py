@@ -62,4 +62,4 @@ api.add_resource(method_resources.MethodCreate, "/method/create")
 api.add_resource(method_resources.MethodControl, "/method/control")
 
 # Add questionnaire endpoints
-api.add_resource(questionnaire_resources.QuestionnaireGet, "/questionnaire/get")
+api.add_resource(questionnaire_resources.QuestionnaireAfterSolutionProcess, "/questionnaire/after")

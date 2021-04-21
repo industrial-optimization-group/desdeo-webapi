@@ -83,7 +83,7 @@ class TestQuestionnaire(TestCase):
         assert len(questionnaire.questions_likert) == 3
         assert len(questionnaire.questions_open) == 2
 
-    def test_get_questionnaire(self):
+    def test_get_questionnaire_after(self):
         payload = json.dumps({"username": "test_user", "password": "pass"})
         response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
         data = json.loads(response.data)
@@ -91,9 +91,8 @@ class TestQuestionnaire(TestCase):
         access_token = data["access_token"]
 
         response = self.app.get(
-            "/questionnaire/get",
-            headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
-            data=json.dumps({"questionnaire_type": "after_solution_process"}),
+            "/questionnaire/after",
+            headers={"Authorization": f"Bearer {access_token}"},
         )
 
         assert response.status_code == 200
