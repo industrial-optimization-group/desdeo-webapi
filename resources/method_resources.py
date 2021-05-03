@@ -2,7 +2,7 @@ import json
 from copy import deepcopy
 
 from app import db
-from desdeo_mcdm.interactive import ReferencePointMethod
+from desdeo_mcdm.interactive import NIMBUS, ReferencePointMethod
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource, reqparse
 from models.method_models import Method
@@ -13,6 +13,7 @@ from utilities.expression_parser import NumpyEncoder, numpify_dict_items
 available_methods = {
     "reference_point_method": ReferencePointMethod,
     "reference_point_method_alt": ReferencePointMethod,  # for testing purposes only!
+    "synchronous_nimbus": NIMBUS,
 }
 
 method_create_parser = reqparse.RequestParser()
@@ -89,6 +90,8 @@ class MethodCreate(Resource):
         # TODO: add more methods!
         if method_name == "reference_point_method":
             method = ReferencePointMethod(problem, problem.ideal, problem.nadir)
+        elif method_name == "synchronous_nimbus":
+            method = NIMBUS(problem)
         elif method_name == "reference_point_method_alt":
             method = ReferencePointMethod(problem, problem.ideal, problem.nadir)
         else:
@@ -143,6 +146,8 @@ class MethodControl(Resource):
 
         # start the method and set response
         request = method.start()
+        if isinstance(request, tuple):  # TODO: not needed once NIMBUS no more returns tuples
+            request = request[0]
         response = json.dumps(request.content, cls=NumpyEncoder)
 
         # set status to iterating and last_request
@@ -185,6 +190,8 @@ class MethodControl(Resource):
         # cast lists, which have numerical content, to numpy arrays
         user_response = numpify_dict_items(user_response_raw)
 
+        if isinstance(last_request, tuple):  # TODO: not needed once NIMBUS no more returns tuples
+            last_request = last_request[0]
         last_request.response = user_response
 
         try:
@@ -202,6 +209,8 @@ class MethodControl(Resource):
                 "last_request": last_request_dump,
             }, 500
 
+        if isinstance(new_request, tuple):  # TODO: not needed once NIMBUS no more returns tuples
+            new_request = new_request[0]
         response = json.dumps(new_request.content, cls=NumpyEncoder)
 
         # ok

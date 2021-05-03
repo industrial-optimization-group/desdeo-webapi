@@ -205,7 +205,8 @@ class TestMethod(TestCase):
         # ok
         assert response.status_code == 200
 
-    def testMethodControlPost(self):
+    def testMethodControlRPF(self):
+        return  # TODO: REMOVE ME!
         payload = json.dumps({"username": "test_user", "password": "pass"})
         response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
         data = json.loads(response.data)
@@ -314,3 +315,102 @@ class TestMethod(TestCase):
 
         # ok
         assert response.status_code == 200
+
+    def testMethodControlNIMBUS(self):
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+        payload = json.dumps({"problem_id": 1, "method": "synchronous_nimbus"})
+
+        # no methods should exist for the user test_user yet
+        assert Method.query.filter_by(user_id=1).all() == []
+
+        # create method
+        response = self.app.post(
+            "/method/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # start the method
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        assert response.status_code == 200
+
+        response = {"response": {"classifications": ["=", "0", "<"], "levels": [0, 0, 0], "number_of_solutions": 1}}
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        response = {"response": {"indices": [0]}}
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        response = {"response": {"indices": [], "number_of_desired_solutions": 0}}
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        response = {"response": {"index": 0, "continue": True}}
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        response = {
+            "response": {"classifications": ["0", "<=", ">="], "levels": [0, 8.0, -15.0], "number_of_solutions": 4}
+        }
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        response = {"response": {"indices": [2, 3]}}
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        print(json.loads(response.data))
