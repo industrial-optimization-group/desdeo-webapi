@@ -114,7 +114,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "desdeo-mcdm"
-version = "1.2.0"
+version = "1.2.3"
 description = "Contains traditional optimization techniques from the field of Multiple-criteria decision-making. Methods belonging to the NIMBUS and NAUTILUS families can be found here. Part of the DESDEO framework."
 category = "main"
 optional = false
@@ -970,8 +970,8 @@ colorama = [
     {file = "colorama-0.4.4.tar.gz", hash = "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b"},
 ]
 desdeo-mcdm = [
-    {file = "desdeo-mcdm-1.2.0.tar.gz", hash = "sha256:d8639ed6a38320d44054f312843e8ab6c2770940c07b6acb1dd9af9e37594f43"},
-    {file = "desdeo_mcdm-1.2.0-py3-none-any.whl", hash = "sha256:9bb05c68b717c51068270ed4294f67cb6b8c625c6f85a974372f43053fe9fd73"},
+    {file = "desdeo-mcdm-1.2.3.tar.gz", hash = "sha256:d66e19c38a182f124c5a79770b2b684893816fbe7fc2618a7722608ad535227f"},
+    {file = "desdeo_mcdm-1.2.3-py3-none-any.whl", hash = "sha256:2d5822429e316c138735c7223f165bc6794af1a7b56346b80abf651879d69e9a"},
 ]
 desdeo-problem = [
     {file = "desdeo_problem-1.2.0-py3-none-any.whl", hash = "sha256:cec31ccc97056bce4cd8d9aee643080374728e0940000ec4753245cf6c01f9a5"},

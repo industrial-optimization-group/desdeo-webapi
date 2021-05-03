@@ -356,7 +356,7 @@ class TestMethod(TestCase):
 
         assert response.status_code == 200
 
-        response = {"response": {"indices": [0]}}
+        response = {"response": {"indices": []}}
         payload = json.dumps(response)
 
         response = self.app.post(
@@ -402,7 +402,49 @@ class TestMethod(TestCase):
 
         assert response.status_code == 200
 
-        response = {"response": {"indices": [2, 3]}}
+        response = {"response": {"indices": [0, 1, 2, 3]}}
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        response = {"response": {"indices": [0, 3], "number_of_desired_solutions": 5}}
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        response = {"response": {"indices": []}}
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        response = {"response": {"indices": [], "number_of_desired_solutions": 0}}
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        response = {"response": {"index": 0, "continue": False}}
         payload = json.dumps(response)
 
         response = self.app.post(
