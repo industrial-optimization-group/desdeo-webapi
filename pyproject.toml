@@ -16,6 +16,7 @@ dill = "^0.3.3"
 sympy = "^1.7.1"
 Flask-Cors = "^3.0.10"
 desdeo-mcdm = "^1.2.0"
+desdeo-problem = "^1.2.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"
@@ -27,6 +28,7 @@ sphinxcontrib-httpdomain = "^1.7.0"
 rstcheck = "^3.3.1"
 sphinx-rtd-theme = "^0.5.1"
 pytest = "^6.2.3"
+matplotlib = "^3.4.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

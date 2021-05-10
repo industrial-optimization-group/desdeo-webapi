@@ -2,7 +2,8 @@ import json
 
 import numpy as np
 from app import db
-from desdeo_problem import MOProblem, Variable, _ScalarObjective
+from desdeo_problem import (DiscreteDataProblem, MOProblem, Variable,
+                            _ScalarObjective)
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource, reqparse
 from models.problem_models import Problem
@@ -10,7 +11,7 @@ from models.user_models import UserModel
 from utilities.expression_parser import numpify_expressions
 
 # The vailable problem types
-available_problem_types = ["Analytical"]
+available_problem_types = ["Analytical", "Discrete"]
 supported_analytical_problem_operators = ["+", "-", "*", "/"]
 
 # Problem creation parser
@@ -145,8 +146,6 @@ class ProblemAccess(Resource):
 
         problem_query = Problem.query.filter_by(user_id=current_user_id, id=data["problem_id"]).first()
 
-        print(problem_query)
-
         if not problem_query:
             # problem not found, 404
             return {"message": f"Problem with id {data['problem_id']} not found"}, 404
@@ -158,13 +157,23 @@ class ProblemAccess(Resource):
             problem_name = problem_query.name
             problem_type = problem_query.problem_type
 
-            # from MOProblem
             problem_pickle = problem_query.problem_pickle
-            objective_names = problem_pickle.get_objective_names()
-            variable_names = problem_pickle.get_variable_names()
-            ideal = problem_pickle.ideal.tolist()
-            nadir = problem_pickle.nadir.tolist()
-            n_objectives = problem_pickle.n_of_objectives
+
+            if isinstance(problem_pickle, MOProblem):
+                # from MOProblem
+                objective_names = problem_pickle.get_objective_names()
+                variable_names = problem_pickle.get_variable_names()
+                ideal = problem_pickle.ideal.tolist()
+                nadir = problem_pickle.nadir.tolist()
+                n_objectives = problem_pickle.n_of_objectives
+            # elif (isinstance(problem_pickle), DiscreteDataProblem):
+            else:
+                # from discrete problem
+                objective_names = problem_pickle.objective_names
+                variable_names = problem_pickle.variable_names
+                ideal = problem_pickle.ideal.tolist()
+                nadir = problem_pickle.nadir.tolist()
+                n_objectives = problem_pickle.n_of_objectives
 
             response = {
                 "objective_names": objective_names,
