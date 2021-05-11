@@ -1,3 +1,4 @@
+import argparse
 import json
 
 import dill
@@ -12,14 +13,21 @@ from app import db
 from models.problem_models import Problem as ProblemModel
 from models.user_models import UserModel
 
+parser = argparse.ArgumentParser(description="Add a new user to the database with a pre-defined problem.")
+parser.add_argument("--username", type=str, help="The username to be added", required=True)
+parser.add_argument("--password", type=str, help="The password for the username to be added", required=True)
+
 dill.settings["recurse"] = True
 
 db.create_all()
 
+args = vars(parser.parse_args())
+
 
 def main():
-    add_user("guy", "fiery")
-    add_sus_problem("guy")
+    args = vars(parser.parse_args())
+    add_user(args["username"], args["password"])
+    add_sus_problem(args["username"])
 
 
 def add_user(username, password):
