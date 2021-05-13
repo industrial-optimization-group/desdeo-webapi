@@ -1,5 +1,8 @@
 import argparse
+import csv
 import json
+import random
+import string
 
 import dill
 import numpy as np
@@ -13,21 +16,44 @@ from app import db
 from models.problem_models import Problem as ProblemModel
 from models.user_models import UserModel
 
-parser = argparse.ArgumentParser(description="Add a new user to the database with a pre-defined problem.")
-parser.add_argument("--username", type=str, help="The username to be added", required=True)
-parser.add_argument("--password", type=str, help="The password for the username to be added", required=True)
+parser = argparse.ArgumentParser(
+    description="Add N new user to the database with a pre-defined problem. and a given username prefix."
+)
+parser.add_argument(
+    "--username", type=str, help="The username prefix to be be used when adding new users.", required=True
+)
+parser.add_argument("--N", type=int, help="The number of usernames to be added.", required=True)
 
 dill.settings["recurse"] = True
 
+db.drop_all()
 db.create_all()
 
 args = vars(parser.parse_args())
 
 
 def main():
+    letters = string.ascii_lowercase
     args = vars(parser.parse_args())
-    add_user(args["username"], args["password"])
-    add_sus_problem(args["username"])
+    usernames = [args["username"] + str(i) for i in range(1, args["N"] + 1)]
+    passwords = [("".join(random.choice(letters) for i in range(6))) for j in range(args["N"])]
+
+    print(usernames)
+    print(passwords)
+    try:
+        for (username, password) in zip(usernames, passwords):
+            add_user(username, password)
+            add_sus_problem(username)
+    except Exception as e:
+        print("something went wrong...")
+        print(e)
+        exit()
+
+    with open("users_and_pass.csv", "w", newline="") as csvfile:
+        writer = csv.writer(csvfile, delimiter=" ", quotechar="|", quoting=csv.QUOTE_MINIMAL)
+        list(map(lambda x: writer.writerow(x), zip(usernames, passwords)))
+
+    print(f"Added users {usernames} to the database succesfully.")
 
 
 def add_user(username, password):
@@ -43,7 +69,7 @@ def add_sus_problem(username):
     else:
         id = user_query.id
 
-    file_name = "./data/approximationPF_Sustainability_MOP_Finland.csv"
+    file_name = "./data/approximationPF_Sustainability_MOP_Finland_MoreSol.csv"
 
     data = pd.read_csv(file_name)
     # minus because all are to be maximized
