@@ -416,11 +416,8 @@ class ProblemCreation(Resource):
                 # nadir is None, compute it
                 pass
 
-<<<<<<< HEAD
             # check that ideal and nadir match
 
-=======
->>>>>>> 5bf3ed09636450c9e6940dc2c4aa24ed6cc56e47
             response = {"message": "Not implemented"}
 
             return response, 501
