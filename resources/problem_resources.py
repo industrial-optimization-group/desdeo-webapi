@@ -67,7 +67,7 @@ problem_create_parser.add_argument(
     "variable_initial_values",
     type=str,
     help=("If specifying an analytical problem, please define the variable initial values as a list of floats."),
-    required=True,
+    required=False,
     action="append",
 )
 problem_create_parser.add_argument(
@@ -77,7 +77,7 @@ problem_create_parser.add_argument(
         "If specifying an analytical problem, please define the variable bounds as a list of tuples of the form"
         "['lower_bound', 'upper_bound']."
     ),
-    required=True,
+    required=False,
     action="append",
 )
 problem_create_parser.add_argument(
@@ -139,6 +139,14 @@ class ProblemAccess(Resource):
 
     @jwt_required()
     def post(self):
+        """Fetch a problem from the DB with a given id 'problem_id'.
+
+        Returns:
+            (tuple): tuple containing:
+                (dict): A dict with fields describing the fetched problem or message
+                    explaining a failure to fetch the problem.
+                (int): HTTP status code: 200 if problem is found.
+        """
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
 
@@ -166,14 +174,16 @@ class ProblemAccess(Resource):
                 ideal = problem_pickle.ideal.tolist()
                 nadir = problem_pickle.nadir.tolist()
                 n_objectives = problem_pickle.n_of_objectives
-            # elif (isinstance(problem_pickle), DiscreteDataProblem):
-            else:
+            elif isinstance(problem_pickle, DiscreteDataProblem):
                 # from discrete problem
                 objective_names = problem_pickle.objective_names
                 variable_names = problem_pickle.variable_names
                 ideal = problem_pickle.ideal.tolist()
                 nadir = problem_pickle.nadir.tolist()
                 n_objectives = problem_pickle.n_of_objectives
+            else:
+                # problem type not found
+                return {"message": f"Problem of type {type(problem_pickle)} not found"}, 404
 
             response = {
                 "objective_names": objective_names,
@@ -198,6 +208,14 @@ class ProblemAccess(Resource):
 class ProblemCreation(Resource):
     @jwt_required()
     def get(self):
+        """Return the names of the available problem types that may be defined.
+
+        Returns:
+            (tuple): a tuple containing:
+                (dict): a dictionary with the entry 'available_problem_types' with a list of str
+                    names of the types.
+                (int): HTTP status code: 200 if successful.
+        """
         response = {
             "available_problem_types": available_problem_types,
         }
@@ -205,6 +223,13 @@ class ProblemCreation(Resource):
 
     @jwt_required()
     def post(self):
+        """Specify and add a problem to the DB.
+
+        Returns:
+            (tuple): a tuple containing:
+                (dict): a dict with various entries.
+                (int): HTTP status code: 201 if problem added successfully.
+        """
         data = problem_create_parser.parse_args()
 
         if data["problem_type"] not in available_problem_types:
@@ -213,6 +238,7 @@ class ProblemCreation(Resource):
 
         if data["problem_type"] == "Analytical":
             # handle analytical problem case
+            # data = problem_create_parser.parse_args()
             if data["objective_functions"] is None:
                 # no objective functions given
                 return {
@@ -242,7 +268,9 @@ class ProblemCreation(Resource):
             else:
                 variable_names = data["variable_names"]
 
-            if len(data["variable_initial_values"]) != len(data["variables"]):
+            if data["variable_initial_values"] is None or len(data["variable_initial_values"]) != len(
+                data["variables"]
+            ):
                 msg = "Bad number of initial variable values given"
                 return {"message": msg}, 406
 
@@ -275,7 +303,7 @@ class ProblemCreation(Resource):
             variables_str = data["variables"]
             variable_bounds_str = data["variable_bounds"]
 
-            if len(variable_bounds_str) != len(variables_str):
+            if variable_bounds_str is None or len(variable_bounds_str) != len(variables_str):
                 return {"message": "Bad number of variable bounds tuples given"}, 406
 
             # convert the bounds and initial values to a numpy array
@@ -311,3 +339,11 @@ class ProblemCreation(Resource):
 
             response = {"problem_type": data["problem_type"], "name": data["name"], "owner": current_user}
             return response, 201
+
+        elif data["problem_type"] == "Discrete":
+            # handle problem with discretely defined variable-objective vector pairs, i.e., (x, f) that
+            # represent a MOO problem.
+
+            response = {"message": "Not implemented"}
+
+            return response, 501
