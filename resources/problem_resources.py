@@ -2,8 +2,7 @@ import json
 
 import numpy as np
 from app import db
-from desdeo_problem import (DiscreteDataProblem, MOProblem, Variable,
-                            _ScalarObjective)
+from desdeo_problem import DiscreteDataProblem, MOProblem, Variable, _ScalarObjective
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.problem_models import Problem
@@ -14,21 +13,24 @@ from utilities.expression_parser import numpify_expressions
 available_problem_types = ["Analytical", "Discrete"]
 supported_analytical_problem_operators = ["+", "-", "*", "/"]
 
-# Problem creation parser
-problem_create_parser = reqparse.RequestParser()
-problem_create_parser.add_argument(
+# Problem creation base parser
+problem_base_parser = reqparse.RequestParser()
+problem_base_parser.add_argument(
     "problem_type",
     type=str,
     help=f"The problem type is required and must be one of {available_problem_types}",
     required=True,
 )
-problem_create_parser.add_argument(
+problem_base_parser.add_argument(
     "name",
     type=str,
     help="The problem name is required",
     required=True,
 )
-problem_create_parser.add_argument(
+
+# Analytical problem parser
+problem_analytical_parser = problem_base_parser.copy()
+problem_analytical_parser.add_argument(
     "objective_functions",
     type=str,
     help=(
@@ -36,65 +38,65 @@ problem_create_parser.add_argument(
         f"a list of strings."
         f"Supported operators: {supported_analytical_problem_operators}"
     ),
-    required=False,
+    required=True,
     action="append",
 )
-problem_create_parser.add_argument(
+problem_analytical_parser.add_argument(
     "objective_names",
     type=str,
     help=(
         "If specifying an analytical problem, please provide names for each objective function as a string in"
         "a list of strings."
     ),
-    required=False,
+    required=True,
     action="append",
 )
-problem_create_parser.add_argument(
+problem_analytical_parser.add_argument(
     "variables",
     type=str,
     help=("If specifying an analytical problem, please define the variable symbols as a list of strings."),
-    required=False,
+    required=True,
     action="append",
 )
-problem_create_parser.add_argument(
+problem_analytical_parser.add_argument(
     "variable_names",
     type=str,
     help=("If specifying an analytical problem, please define the variable variable as a list of strings."),
-    required=False,
+    required=True,
     action="append",
 )
-problem_create_parser.add_argument(
+problem_analytical_parser.add_argument(
     "variable_initial_values",
     type=str,
     help=("If specifying an analytical problem, please define the variable initial values as a list of floats."),
-    required=False,
+    required=True,
     action="append",
 )
-problem_create_parser.add_argument(
+problem_analytical_parser.add_argument(
     "variable_bounds",
     type=str,
     help=(
         "If specifying an analytical problem, please define the variable bounds as a list of tuples of the form"
         "['lower_bound', 'upper_bound']."
     ),
-    required=False,
+    required=True,
     action="append",
 )
-problem_create_parser.add_argument(
+problem_analytical_parser.add_argument(
     "ideal",
     type=str,
     help=("The ideal point of the multiobjective optimization problem."),
     required=False,
     action="append",
 )
-problem_create_parser.add_argument(
+problem_analytical_parser.add_argument(
     "nadir",
     type=str,
     help=("The nadir point of the multiobjective optimization problem."),
     required=False,
     action="append",
 )
-problem_create_parser.add_argument(
+problem_analytical_parser.add_argument(
     "minimize",
     type=str,
     help=(
@@ -104,6 +106,24 @@ problem_create_parser.add_argument(
     required=False,
     action="append",
 )
+
+# Discrete problem parser
+problem_discrete_parser = problem_analytical_parser.copy()
+[
+    problem_discrete_parser.remove_argument(arg_name)
+    for arg_name in ["objective_functions", "variable_initial_values", "variable_bounds"]
+]
+problem_discrete_parser.add_argument(
+    "objectives",
+    type=str,
+    help=(
+        "When specifying a discrete problem, the objective values must be supplied as a 2D "
+        "list with each objective vector on its own row."
+    ),
+    required=True,
+    action="append",
+)
+
 
 # Problem access parser
 problem_access_parser = reqparse.RequestParser()
@@ -230,7 +250,7 @@ class ProblemCreation(Resource):
                 (dict): a dict with various entries.
                 (int): HTTP status code: 201 if problem added successfully.
         """
-        data = problem_create_parser.parse_args()
+        data = problem_base_parser.parse_args()
 
         if data["problem_type"] not in available_problem_types:
             # check that problem type is valid, if not, return 406
@@ -238,7 +258,7 @@ class ProblemCreation(Resource):
 
         if data["problem_type"] == "Analytical":
             # handle analytical problem case
-            # data = problem_create_parser.parse_args()
+            data = problem_analytical_parser.parse_args()
             if data["objective_functions"] is None:
                 # no objective functions given
                 return {
@@ -343,6 +363,58 @@ class ProblemCreation(Resource):
         elif data["problem_type"] == "Discrete":
             # handle problem with discretely defined variable-objective vector pairs, i.e., (x, f) that
             # represent a MOO problem.
+
+            # has: problem_type, name, objectives, objective_names, variables, variable_names, ideal, nadir, minimize
+            data = problem_discrete_parser.parse_args()
+
+            # convert variables and objectives to numpy array
+            try:
+                xs = np.array(list(map(json.loads, data["variables"])))
+                fs = np.array(list(map(json.loads, data["objectives"])))
+            except Exception as e:
+                print(f"DEBUG: {e}")
+                message = "Could not parse given variables and/or objectives."
+                return {"message": message}, 500
+
+            # check proper length of given variable names
+            if len(data["variable_names"]) != xs.shape[1]:
+                message = "The number of variable names does not match the one given in the data."
+                return {"message": message}, 500
+
+            variable_names = data["variable_names"]
+
+            # check proper length of given objective names
+            if len(data["objective_names"]) != fs.shape[1]:
+                message = "The number of objective names does not match the one given in the data."
+                return {"message": message}, 500
+
+            objective_names = data["objective_names"]
+
+            # names and data given match
+            # check ideal, if not given, compute from data
+            if data["ideal"] is not None and len(data["ideal"]) == len(objective_names):
+                # ideal of proper size given
+                ideal = np.array(data["ideal"]).astype(float)
+            elif len(data["ideal"]) != len(objective_names):
+                # bad ideal
+                print(f"from {__file__}: {data['ideal']}")
+                message = "The dimensions of the ideal point do not match with the number of objectives."
+                return {"message": message}, 500
+            else:
+                # ideal is None, compute it
+                pass
+
+            # check nadir, if not given, compute from data
+            if data["nadir"] is not None and len(data["nadir"]) == len(objective_names):
+                # nadir of proper size given
+                nadir = np.array(data["nadir"]).astype(float)
+            elif len(data["nadir"]) != len(objective_names):
+                # bad nadir
+                message = "The dimensions of the nadir point do not match with the number of objectives."
+                return {"message": message}, 500
+            else:
+                # nadir is None, compute it
+                pass
 
             response = {"message": "Not implemented"}
 
