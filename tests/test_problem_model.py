@@ -1,4 +1,5 @@
 import json
+import os
 from abc import abstractstaticmethod
 
 import numpy as np
@@ -159,8 +160,8 @@ class TestAnalyticalProblem(TestCase):
             data=payload,
         )
 
-        # 406
-        assert response.status_code == 406
+        # 400
+        assert response.status_code == 400
 
         # Missing variable bounds
         # three objective functions given
@@ -186,8 +187,8 @@ class TestAnalyticalProblem(TestCase):
             data=payload,
         )
 
-        # 406
-        assert response.status_code == 406
+        # 400
+        assert response.status_code == 400
 
         variable_bounds = [[-5, 5], [-15, 15], [-20, 20]]
         initial_values = [5, 2, 3]
@@ -334,11 +335,21 @@ class TestDiscreteProblem(TestCase):
 
     def test_add_problem(self):
         atoken = self.login()
+        path = os.path.dirname(os.path.abspath(__file__))
 
+        pf = np.loadtxt(f"{path}/data/testPF_3f_11x_max.csv", delimiter=",")
+        fs = list(map(list, pf[:, 0:3]))
+        xs = list(map(list, pf[:, 3:]))
+
+        # wrong n variables names
         payload = json.dumps(
             {
                 "problem_type": "Discrete",
                 "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3", "f4"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4"],
             }
         )
 
@@ -348,5 +359,114 @@ class TestDiscreteProblem(TestCase):
             data=payload,
         )
 
-        print(json.loads(response.data))
-        assert response.status_code == 501
+        assert (
+            json.loads(response.data)["message"]
+            == "The number of variable names does not match the one given in the data."
+        )
+        assert response.status_code == 500
+
+        # wrong n objective names
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3", "f4"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        assert (
+            json.loads(response.data)["message"]
+            == "The number of objective names does not match the one given in the data."
+        )
+
+        assert response.status_code == 500
+
+        # bad ideal
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "ideal": json.dumps([1, 1]),
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        assert (
+            json.loads(response.data)["message"]
+            == "The dimensions of the ideal point do not match with the number of objectives."
+        )
+
+        assert response.status_code == 500
+
+        # bad nadir
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "ideal": [100, 100, 100],
+                "nadir": [-100, -100, -100, -100],
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        print(f"from {__file__}: {json.loads(response.data)}")
+        assert (
+            json.loads(response.data)["message"]
+            == "The dimensions of the nadir point do not match with the number of objectives."
+        )
+
+        # ideal and nadir given, but does not make sense
+        # TODO
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "ideal": [100, 100, 100],
+                "nadir": [1000, 1000, 1000],
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        print(f"from {__file__}: {json.loads(response.data)}")
+        assert (
+            json.loads(response.data)["message"]
+            == "The dimensions of the nadir point do not match with the number of objectives."
+        )
+
+        assert response.status_code == 500
