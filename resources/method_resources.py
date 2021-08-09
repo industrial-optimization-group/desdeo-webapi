@@ -4,7 +4,7 @@ from copy import deepcopy
 from app import db
 from desdeo_mcdm.interactive import NIMBUS, ReferencePointMethod
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from flask_restful import Resource, reqparse
+from flask_restx import Resource, reqparse
 from models.method_models import Method
 from models.problem_models import Problem
 from models.user_models import UserModel

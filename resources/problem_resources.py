@@ -5,7 +5,7 @@ from app import db
 from desdeo_problem import (DiscreteDataProblem, MOProblem, Variable,
                             _ScalarObjective)
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from flask_restful import Resource, reqparse
+from flask_restx import Resource, reqparse
 from models.problem_models import Problem
 from models.user_models import UserModel
 from utilities.expression_parser import numpify_expressions

@@ -1,6 +1,6 @@
 from app import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from flask_restful import Resource, reqparse
+from flask_restx import Resource, reqparse
 from models.questionnaire_models import QuestionLikert, QuestionOpen
 from models.user_models import UserModel
 
