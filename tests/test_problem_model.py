@@ -1,18 +1,18 @@
 import json
 import os
-from abc import abstractstaticmethod
 
 import numpy as np
 import numpy.testing as npt
-import py
 import pytest
 from app import app, db
+from desdeo_problem.problem import DiscreteDataProblem
 from flask_testing import TestCase
 from models.problem_models import Problem
 from models.user_models import UserModel
 
 
 @pytest.mark.analytical_problem
+@pytest.mark.problem
 class TestAnalyticalProblem(TestCase):
     SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
     TESTING = True
@@ -303,6 +303,7 @@ class TestAnalyticalProblem(TestCase):
 
 
 @pytest.mark.discrete_problem
+@pytest.mark.problem
 class TestDiscreteProblem(TestCase):
     SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
     TESTING = True
@@ -333,13 +334,16 @@ class TestDiscreteProblem(TestCase):
 
         return access_token
 
-    def test_add_problem(self):
-        atoken = self.login()
-        path = os.path.dirname(os.path.abspath(__file__))
-
-        pf = np.loadtxt(f"{path}/data/testPF_3f_11x_max.csv", delimiter=",")
+    def get_xs_and_fs(self, path=os.path.dirname(os.path.abspath(__file__)), fname="data/testPF_3f_11x_max.csv"):
+        pf = np.loadtxt(f"{path}/{fname}", delimiter=",")
         fs = list(map(list, pf[:, 0:3]))
         xs = list(map(list, pf[:, 3:]))
+
+        return xs, fs
+
+    def test_wrong_var_names(self):
+        atoken = self.login()
+        xs, fs = self.get_xs_and_fs()
 
         # wrong n variables names
         payload = json.dumps(
@@ -363,7 +367,11 @@ class TestDiscreteProblem(TestCase):
             json.loads(response.data)["message"]
             == "The number of variable names does not match the one given in the data."
         )
-        assert response.status_code == 500
+        assert response.status_code == 406
+
+    def test_wrong_obj_names(self):
+        atoken = self.login()
+        xs, fs = self.get_xs_and_fs()
 
         # wrong n objective names
         payload = json.dumps(
@@ -388,7 +396,11 @@ class TestDiscreteProblem(TestCase):
             == "The number of objective names does not match the one given in the data."
         )
 
-        assert response.status_code == 500
+        assert response.status_code == 406
+
+    def test_bad_ideal(self):
+        atoken = self.login()
+        xs, fs = self.get_xs_and_fs()
 
         # bad ideal
         payload = json.dumps(
@@ -414,8 +426,11 @@ class TestDiscreteProblem(TestCase):
             == "The dimensions of the ideal point do not match with the number of objectives."
         )
 
-        assert response.status_code == 500
+        assert response.status_code == 406
 
+    def test_bad_nadir(self):
+        atoken = self.login()
+        xs, fs = self.get_xs_and_fs()
         # bad nadir
         payload = json.dumps(
             {
@@ -436,14 +451,45 @@ class TestDiscreteProblem(TestCase):
             data=payload,
         )
 
-        print(f"from {__file__}: {json.loads(response.data)}")
         assert (
             json.loads(response.data)["message"]
             == "The dimensions of the nadir point do not match with the number of objectives."
         )
 
+        assert response.status_code == 406
+
+    def test_ideal_nadir_mismatch(self):
+        atoken = self.login()
+        xs, fs = self.get_xs_and_fs()
         # ideal and nadir given, but does not make sense
-        # TODO
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "ideal": [100, 100, 100],
+                "nadir": [100, 10, 1000],
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        assert "Given ideal and nadir are in conflict:" in json.loads(response.data)["message"]
+
+        assert response.status_code == 406
+
+    def test_bad_minimize(self):
+        atoken = self.login()
+        xs, fs = self.get_xs_and_fs()
+
+        # bad minimize: wrong n items
         payload = json.dumps(
             {
                 "problem_type": "Discrete",
@@ -454,6 +500,7 @@ class TestDiscreteProblem(TestCase):
                 "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
                 "ideal": [100, 100, 100],
                 "nadir": [1000, 1000, 1000],
+                "minimize": [1, 1],
             }
         )
 
@@ -463,10 +510,225 @@ class TestDiscreteProblem(TestCase):
             data=payload,
         )
 
-        print(f"from {__file__}: {json.loads(response.data)}")
-        assert (
-            json.loads(response.data)["message"]
-            == "The dimensions of the nadir point do not match with the number of objectives."
+        assert "Number of elements in minimize" in json.loads(response.data)["message"]
+
+        assert response.status_code == 406
+
+        # bad minimize: wrong element
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "ideal": [100, 100, 100],
+                "nadir": [1000, 1000, 1000],
+                "minimize": [1, 5, -1],
+            }
         )
 
-        assert response.status_code == 500
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        assert "Some elements in" in json.loads(response.data)["message"]
+
+        assert response.status_code == 406
+
+    """
+    def test_compute_ideal_and_nadir(self):
+        atoken = self.login()
+        xs, fs = self.get_xs_and_fs()
+
+        # bad minimize: wrong element
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "minimize": [1, 1, 1],
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        assert "Some elements in" in json.loads(response.data)["message"]
+
+        assert response.status_code == 406
+    """
+
+    def test_add_problem(self):
+        # test that problem added to DB is correct
+        atoken = self.login()
+        xs, fs = self.get_xs_and_fs()
+
+        # check that no problems exists for current user
+        response = self.app.get(
+            "/problem/access",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        assert len(data["problems"]) == 0
+
+        ptype = "Discrete"
+        pname = "discrete_data_problem"
+        uname = "test_user"
+        objective_names = ["f1", "f2", "f3"]
+        variable_names = ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"]
+        ideal = [100, 100, 100]
+        nadir = [1000, 1000, 1000]
+        minimize = [1, 1, 1]
+
+        payload = json.dumps(
+            {
+                "problem_type": ptype,
+                "name": pname,
+                "objectives": fs,
+                "objective_names": objective_names,
+                "variables": xs,
+                "variable_names": variable_names,
+                "ideal": ideal,
+                "nadir": nadir,
+                "minimize": minimize,
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        data = json.loads(response.data)
+
+        assert data["problem_type"] == ptype
+        assert data["name"] == pname
+        assert data["owner"] == uname
+
+        assert response.status_code == 201
+
+        # fetch problem and check it
+        response = self.app.get(
+            "/problem/access",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        assert len(data["problems"]) == 1
+
+        problem_d = data["problems"][0]
+
+        assert problem_d["name"] == pname
+        assert problem_d["problem_type"] == ptype
+
+        problem_id = problem_d["id"]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+            }
+        )
+
+        response = self.app.post(
+            "/problem/access",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        assert data["objective_names"] == objective_names
+        assert data["variable_names"] == variable_names
+        assert data["ideal"] == ideal
+        assert data["nadir"] == nadir
+        assert data["n_objectives"] == len(objective_names)
+        assert data["problem_name"] == pname
+        assert data["problem_type"] == ptype
+        assert data["problem_id"] == problem_id
+
+        # check the query
+        query = Problem.query.filter_by(name=pname).first()
+
+        assert query.name == pname
+
+        user_id = UserModel.query.filter_by(username="test_user").first().id
+
+        assert query.user_id == user_id
+        assert query.problem_type == ptype
+        assert query.id == 1
+        assert query.minimize == str(minimize)
+
+        # check the pickle
+        problem: DiscreteDataProblem = query.problem_pickle
+
+        assert problem
+        assert type(problem) is DiscreteDataProblem
+
+        npt.assert_almost_equal(problem.objectives, fs)
+        npt.assert_almost_equal(problem.decision_variables, xs)
+        npt.assert_almost_equal(problem.ideal, ideal)
+        npt.assert_almost_equal(problem.nadir, nadir)
+
+        assert problem.n_of_objectives == len(objective_names)
+        assert problem.objective_names == objective_names
+        assert problem.variable_names == variable_names
+
+    def test_compute_ideal_and_nadir(self):
+        # test that problem the ideal and nadir are computed correctly if not given
+        atoken = self.login()
+        xs, fs = self.get_xs_and_fs()
+        pname = "discrete_data_problem"
+
+        ideal_true = np.min(fs, axis=0)
+        nadir_true = np.max(fs, axis=0)
+
+        assert ideal_true.shape[0] == 3
+        assert nadir_true.shape[0] == 3
+
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": pname,
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        assert response.status_code == 201
+
+        # fetch problem from DB
+        query: Problem = Problem.query.filter_by(name=pname).first()
+
+        problem = query.problem_pickle
+
+        npt.assert_almost_equal(problem.ideal, ideal_true)
+        npt.assert_almost_equal(problem.nadir, nadir_true)
+        npt.assert_array_less(problem.ideal, problem.nadir)

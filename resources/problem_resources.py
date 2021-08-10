@@ -1,6 +1,7 @@
 import json
 
 import numpy as np
+import pandas as pd
 from app import db
 from desdeo_problem import DiscreteDataProblem, MOProblem, Variable, _ScalarObjective
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -379,45 +380,95 @@ class ProblemCreation(Resource):
             # check proper length of given variable names
             if len(data["variable_names"]) != xs.shape[1]:
                 message = "The number of variable names does not match the one given in the data."
-                return {"message": message}, 500
+                return {"message": message}, 406
 
             variable_names = data["variable_names"]
 
             # check proper length of given objective names
             if len(data["objective_names"]) != fs.shape[1]:
                 message = "The number of objective names does not match the one given in the data."
-                return {"message": message}, 500
+                return {"message": message}, 406
 
             objective_names = data["objective_names"]
+
+            # check minimize, if given
+            if data["minimize"] is not None and len(data["minimize"]) != len(objective_names):
+                # minimize given, but has incorrect n of elements
+                message = (
+                    f"Number of elements in minimize: {data['minimize']} should match the number of elements in"
+                    f"objective names: {len(objective_names)}."
+                )
+                return {"message": message}, 406
+            elif data["minimize"] is None:
+                # default value if minimize not given
+                minimize = [1 for _ in objective_names]
+            else:
+                # minimize not None and has correct n of elements, check for correct elements, should be 1 or -1
+                if not all([e in ["-1", "1"] for e in data["minimize"]]):
+                    message = f"Some elements in {data['minimize']} are incorrect. Supported values are 1 and -1."
+                    return {"message": message}, 406
+                # correct minimize given
+                minimize = list(map(int, data["minimize"]))
 
             # names and data given match
             # check ideal, if not given, compute from data
             if data["ideal"] is not None and len(data["ideal"]) == len(objective_names):
                 # ideal of proper size given
                 ideal = np.array(data["ideal"]).astype(float)
-            elif len(data["ideal"]) != len(objective_names):
+            elif data["ideal"] is not None and len(data["ideal"]) != len(objective_names):
                 # bad ideal
-                print(f"from {__file__}: {data['ideal']}")
                 message = "The dimensions of the ideal point do not match with the number of objectives."
-                return {"message": message}, 500
+                return {"message": message}, 406
             else:
                 # ideal is None, compute it
-                pass
+                ideal = np.min(fs, axis=0)
 
             # check nadir, if not given, compute from data
             if data["nadir"] is not None and len(data["nadir"]) == len(objective_names):
                 # nadir of proper size given
                 nadir = np.array(data["nadir"]).astype(float)
-            elif len(data["nadir"]) != len(objective_names):
+            elif data["nadir"] is not None and len(data["nadir"]) != len(objective_names):
                 # bad nadir
                 message = "The dimensions of the nadir point do not match with the number of objectives."
-                return {"message": message}, 500
+                return {"message": message}, 406
             else:
                 # nadir is None, compute it
-                pass
+                nadir = np.max(fs, axis=0)
 
-            # check that ideal and nadir match
+            # check that ideal and nadir make sense
+            if np.any(ideal > nadir):
+                # some objective value of ideal is more than the respective one in nadir, this makes no sense
+                message = (
+                    f"Given ideal and nadir are in conflict: some of the values in ideal: {ideal} are greater "
+                    f"than in nadir: {nadir}."
+                )
+                return {"message": message}, 406
 
-            response = {"message": "Not implemented"}
+            """
+            response = {"problem_type": data["problem_type"], "name": data["name"], "owner": current_user}
+            return response, 201
+            """
 
-            return response, 501
+            # Define dataframe
+            df = pd.DataFrame(np.hstack((fs, xs)), columns=objective_names + variable_names)
+
+            # Define problem
+            problem = DiscreteDataProblem(df, variable_names, objective_names, ideal, nadir)
+
+            # Add to DB for current user
+            current_user = get_jwt_identity()
+            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+
+            db.session.add(
+                Problem(
+                    name=data["name"],
+                    problem_type=data["problem_type"],
+                    problem_pickle=problem,
+                    user_id=current_user_id,
+                    minimize=json.dumps(minimize),
+                )
+            )
+            db.session.commit()
+
+            response = {"problem_type": data["problem_type"], "name": data["name"], "owner": current_user}
+            return response, 201
