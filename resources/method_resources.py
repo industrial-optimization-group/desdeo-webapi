@@ -2,7 +2,8 @@ import json
 from copy import deepcopy
 
 from app import db
-from desdeo_mcdm.interactive import NIMBUS, ReferencePointMethod
+from desdeo_mcdm.interactive import NIMBUS, NautilusNavigator, ReferencePointMethod
+from desdeo_problem.problem.Problem import DiscreteDataProblem
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.method_models import Method
@@ -14,6 +15,7 @@ available_methods = {
     "reference_point_method": ReferencePointMethod,
     "reference_point_method_alt": ReferencePointMethod,  # for testing purposes only!
     "synchronous_nimbus": NIMBUS,
+    "nautilus_navigator": NautilusNavigator,
 }
 
 method_create_parser = reqparse.RequestParser()
@@ -64,9 +66,9 @@ class MethodCreate(Resource):
             current_user = get_jwt_identity()
             current_user_id = UserModel.query.filter_by(username=current_user).first().id
 
-            problem_match = Problem.query.filter_by(user_id=current_user_id, id=problem_id).first()
-            problem = problem_match.problem_pickle
-            problem_minimize = problem_match.minimize
+            query = Problem.query.filter_by(user_id=current_user_id, id=problem_id).first()
+            problem = query.problem_pickle
+            problem_minimize = query.minimize
 
         except Exception as e:
             print(f"DEBUG: {e}")
@@ -94,6 +96,14 @@ class MethodCreate(Resource):
             method = NIMBUS(problem)
         elif method_name == "reference_point_method_alt":
             method = ReferencePointMethod(problem, problem.ideal, problem.nadir)
+        elif method_name == "nautilus_navigator":
+            if query.problem_type == "Discrete":
+                problem: DiscreteDataProblem
+                method = NautilusNavigator(problem.objectives, problem.ideal, problem.nadir)
+            else:
+                # not discrete problem
+                message = "Currently NAUTILUS Navigator supports only the solving of discrete problem."
+                return {"message": message}, 406
         else:
             # internal error
             return {"message": f"For some reason could not initialize method {method_name}"}, 500

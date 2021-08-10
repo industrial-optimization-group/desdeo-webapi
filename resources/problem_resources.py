@@ -436,13 +436,18 @@ class ProblemCreation(Resource):
                 nadir = np.max(fs, axis=0)
 
             # check that ideal and nadir make sense
-            if np.any(ideal > nadir):
-                # some objective value of ideal is more than the respective one in nadir, this makes no sense
-                message = (
-                    f"Given ideal and nadir are in conflict: some of the values in ideal: {ideal} are greater "
-                    f"than in nadir: {nadir}."
-                )
-                return {"message": message}, 406
+            try:
+                if np.any(ideal > nadir):
+                    # some objective value of ideal is more than the respective one in nadir, this makes no sense
+                    message = (
+                        f"Given ideal and nadir are in conflict: some of the values in ideal: {ideal} are greater "
+                        f"than in nadir: {nadir}."
+                    )
+                    return {"message": message}, 406
+            except Exception as e:
+                print(f"DEBUG: {e}")
+                message = "Failed to compare the ideal and nadir."
+                return {"message": message}, 500
 
             """
             response = {"problem_type": data["problem_type"], "name": data["name"], "owner": current_user}

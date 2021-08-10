@@ -1,6 +1,9 @@
 import json
+import os
 
+import numpy as np
 import numpy.testing as npt
+import pytest
 from app import app, db
 from desdeo_mcdm.interactive.ReferencePointMethod import ReferencePointMethod
 from flask_testing import TestCase
@@ -9,6 +12,7 @@ from models.problem_models import Problem
 from models.user_models import UserModel
 
 
+@pytest.mark.method
 class TestMethod(TestCase):
     SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
     TESTING = True
@@ -205,117 +209,6 @@ class TestMethod(TestCase):
         # ok
         assert response.status_code == 200
 
-    def testMethodControlRPF(self):
-        return  # TODO: REMOVE ME!
-        payload = json.dumps({"username": "test_user", "password": "pass"})
-        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
-        data = json.loads(response.data)
-
-        access_token = data["access_token"]
-        payload = json.dumps({"problem_id": 1, "method": "reference_point_method"})
-
-        # no methods should exist for the user test_user yet
-        assert Method.query.filter_by(user_id=1).all() == []
-
-        # create method
-        response = self.app.post(
-            "/method/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
-            data=payload,
-        )
-
-        # created
-        assert response.status_code == 201
-
-        # start the method
-        response = self.app.get(
-            "/method/control",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-
-        method_query = Method.query.filter_by(id=1).first()
-        assert method_query.method_pickle._h == 1
-
-        # ok
-        assert response.status_code == 200
-
-        # request_content = json.loads(response.data)
-
-        # for reference point method
-        response_dict = {"response": {"reference_point": [5, -15.2, 22.2]}}
-        payload = json.dumps(response_dict)
-
-        # iterate the method
-        response = self.app.post(
-            "/method/control",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
-            data=payload,
-        )
-
-        method_query = Method.query.filter_by(id=1).first()
-        assert method_query.method_pickle._h == 1
-
-        # ok
-        assert response.status_code == 200
-
-        # iterate a second time
-        response_dict = {"response": {"satisfied": False, "reference_point": [4, 15.2, 4.2]}}
-        payload = json.dumps(response_dict)
-
-        response = self.app.post(
-            "/method/control",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
-            data=payload,
-        )
-
-        method_query = Method.query.filter_by(id=1).first()
-        assert method_query.method_pickle._h == 2
-
-        # ok
-        assert response.status_code == 200
-
-        # iterate a third time
-        response_dict = {"response": {"satisfied": False, "reference_point": [2, 15.9, 8.2]}}
-        payload = json.dumps(response_dict)
-
-        response = self.app.post(
-            "/method/control",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
-            data=payload,
-        )
-
-        method_query = Method.query.filter_by(id=1).first()
-        assert method_query.method_pickle._h == 3
-
-        # ok
-        assert response.status_code == 200
-
-        # stop iterating
-        request_content = json.loads(json.loads(response.data)["response"])
-        choice_idx = 2
-        choice = request_content["additional_solutions"][choice_idx - 1]
-        response_dict = {"response": {"satisfied": True, "solution_index": choice_idx}}
-
-        payload = json.dumps(response_dict)
-
-        response = self.app.post(
-            "/method/control",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
-            data=payload,
-        )
-
-        method_query = Method.query.filter_by(id=1).first()
-        assert method_query.method_pickle._h == 3
-
-        request_content = json.loads(json.loads(response.data)["response"])
-        final_solution = request_content["objective_vector"]
-        # final_solution_x = request_content["solution"]
-
-        npt.assert_almost_equal(final_solution, choice)
-
-        # ok
-        assert response.status_code == 200
-
     def testMethodControlNIMBUS(self):
         payload = json.dumps({"username": "test_user", "password": "pass"})
         response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
@@ -456,3 +349,132 @@ class TestMethod(TestCase):
         assert response.status_code == 200
 
         print(json.loads(response.data))
+
+
+@pytest.mark.nautilusnav
+@pytest.mark.method
+class TestNautilusNavigator(TestCase):
+    SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
+    TESTING = True
+
+    def create_app(self):
+        app.config["SQLALCHEMY_DATABASE_URI"] = self.SQLALCHEMY_DATABASE_URI
+        app.config["TESTING"] = self.TESTING
+        return app
+
+    def setUp(self):
+        db.create_all()
+        self.app = app.test_client()
+
+        db.session.add(UserModel(username="test_user", password=UserModel.generate_hash("pass")))
+        db.session.commit()
+
+        atoken = self.login()
+
+        xs, fs = self.get_xs_and_fs()
+
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3"],
+                "variables": xs,
+                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        if response.status_code != 201:
+            # ABORT, failed to add problem to DB!
+            self.tearDown()
+            pytest.exit(f"FATAL ERROR: Could not add problem during setup in {__file__}.")
+            exit()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+
+    def login(self, uname="test_user", pword="pass"):
+        # login and get access token for test user
+        payload = json.dumps({"username": uname, "password": pword})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        return access_token
+
+    def get_xs_and_fs(self, path=os.path.dirname(os.path.abspath(__file__)), fname="data/testPF_3f_11x_max.csv"):
+        pf = np.loadtxt(f"{path}/{fname}", delimiter=",")
+        fs = list(map(list, pf[:, 0:3]))
+        xs = list(map(list, pf[:, 3:]))
+
+        return xs, fs
+
+    def test_create_method(self):
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+        method_name = "nautilus_navigator"
+
+        # create a nautilus navigator method
+        response = self.app.get(
+            "/method/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+        )
+
+        # no method created for user
+        assert response.status_code == 404
+
+        # create method
+        payload = json.dumps({"problem_id": 1, "method": method_name})
+
+        response = self.app.post(
+            "/method/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        data = json.loads(response.data)
+
+        assert data["method"] == method_name
+        assert data["owner"] == uname
+
+        # created
+        assert response.status_code == 201
+
+    def test_start_method(self):
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+
+        self.test_create_method()
+
+        # start method
+        response = self.app.get(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        assert "response" in data
+        assert "message" in data["response"]
+        assert "ideal" in data["response"]
+        assert "nadir" in data["response"]
+        assert "reachable_lb" in data["response"]
+        assert "reachable_ub" in data["response"]
+        assert "user_bounds" in data["response"]
+        assert "reachable_idx" in data["response"]
+        assert "step_number" in data["response"]
+        assert "steps_remaining" in data["response"]
+        assert "distance" in data["response"]
+        assert "allowed_speeds" in data["response"]
+        assert "current_speed" in data["response"]
+        assert "navigation_point" in data["response"]
