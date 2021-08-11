@@ -1,8 +1,8 @@
-import json
 from typing import List
 
 import dill
 import numpy as np
+import simplejson as json
 from sympy import lambdify, symbols
 from sympy.parsing.sympy_parser import parse_expr
 

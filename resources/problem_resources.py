@@ -1,7 +1,6 @@
-import json
-
 import numpy as np
 import pandas as pd
+import simplejson as json
 from app import db
 from desdeo_problem import DiscreteDataProblem, MOProblem, Variable, _ScalarObjective
 from flask_jwt_extended import get_jwt_identity, jwt_required

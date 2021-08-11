@@ -1,8 +1,8 @@
-import json
 from copy import deepcopy
 
+import simplejson as json
 from app import db
-from desdeo_mcdm.interactive import NIMBUS, NautilusNavigator, ReferencePointMethod
+from desdeo_mcdm.interactive import NIMBUS, NautilusNavigator, NautilusNavigatorRequest, ReferencePointMethod
 from desdeo_problem.problem.Problem import DiscreteDataProblem
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
@@ -202,14 +202,33 @@ class MethodControl(Resource):
 
         if isinstance(last_request, tuple):  # TODO: not needed once NIMBUS no more returns tuples
             last_request = last_request[0]
-        last_request.response = user_response
 
         try:
-            # attempt to iterate and update method and last_request pickles
+            if isinstance(method, NautilusNavigator) and user_response["go_to_previous"]:
+                # for navigation methods, we need to copy the whole response as the contents of the request when going back
+                # since historic information is expected in the contents, but is contained in the response.
+                # TODO this is stupid, fix NautilusNavigator to expect these fields in the response instead...
+                last_request = NautilusNavigatorRequest(
+                    user_response["ideal"],
+                    user_response["nadir"],
+                    user_response["reachable_lb"],
+                    user_response["reachable_ub"],
+                    user_response["user_bounds"],
+                    user_response["reachable_idx"],
+                    user_response["step_number"],
+                    user_response["steps_remaining"],
+                    user_response["distance"],
+                    user_response["allowed_speeds"],
+                    user_response["current_speed"],
+                    user_response["navigation_point"],
+                )
+
+            last_request.response = user_response
             new_request = method.iterate(last_request)
             method_query.method_pickle = method
             method_query.last_request = new_request
             db.session.commit()
+
         except Exception as e:
             print(f"DEBUG: {e}")
             # error, could not iterate, internal server error

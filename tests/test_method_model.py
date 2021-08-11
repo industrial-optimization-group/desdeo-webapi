@@ -1,9 +1,9 @@
-import json
 import os
 
 import numpy as np
 import numpy.testing as npt
 import pytest
+import simplejson as json
 from app import app, db
 from desdeo_mcdm.interactive.ReferencePointMethod import ReferencePointMethod
 from flask_testing import TestCase
@@ -412,9 +412,10 @@ class TestNautilusNavigator(TestCase):
 
     def get_xs_and_fs(self, path=os.path.dirname(os.path.abspath(__file__)), fname="data/testPF_3f_11x_max.csv"):
         pf = np.loadtxt(f"{path}/{fname}", delimiter=",")
-        fs = list(map(list, pf[:, 0:3]))
+        fs = list(map(list, -pf[:, 0:3]))
         xs = list(map(list, pf[:, 3:]))
 
+        # the minus because the problem has been specified to be maximized in testPF_3f_11x_max.csv
         return xs, fs
 
     def test_create_method(self):
@@ -478,3 +479,96 @@ class TestNautilusNavigator(TestCase):
         assert "allowed_speeds" in data["response"]
         assert "current_speed" in data["response"]
         assert "navigation_point" in data["response"]
+
+    def test_iterate_method(self):
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+
+        self.test_create_method()
+
+        # start method
+        response = self.app.get(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+        )
+
+        assert response.status_code == 200
+
+        content = json.loads(response.data)["response"]
+
+        # first iteration
+        assert content["step_number"] == 1
+
+        # iterate method once
+        lower_b = content["reachable_lb"]
+        upper_b = content["reachable_ub"]
+
+        # set ref_point as middle of bounds
+        ref_p = [(upper_b[i] + lower_b[i]) / 2.0 for i in range(len(upper_b))]
+
+        response = {
+            "response": {
+                "reference_point": ref_p,
+                "speed": 1,
+                "go_to_previous": False,
+                "stop": False,
+                "user_bounds": [None, None, None],
+            }
+        }
+
+        payload = json.dumps(response, ignore_nan=True)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        content = json.loads(json.loads(response.data)["response"])
+
+        # iterated once
+        assert content["step_number"] == 2
+
+        # iterate till the end (add padding because we already iterate twice)
+        responses = [None, None]
+        for _ in range(98):
+            response = self.app.post(
+                "/method/control",
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+                data=payload,
+            )
+
+            assert response.status_code == 200
+
+            content = json.loads(json.loads(response.data)["response"])
+            responses.append(content)
+
+        content = json.loads(json.loads(response.data)["response"])
+
+        assert content["step_number"] == 100
+        assert content["steps_remaining"] == 1
+
+        # take some steps back
+        response = responses[58]
+        response["go_to_previous"] = True
+        response["reference_point"] = ref_p
+        response["speed"] = 3
+        response["stop"] = False
+        response = {"response": response}
+
+        payload = json.dumps(response, ignore_nan=True)
+
+        response = self.app.post(
+            "/method/control",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        content = json.loads(json.loads(response.data)["response"])
+
+        assert content["step_number"] == 59
+        assert content["steps_remaining"] == 42
