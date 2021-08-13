@@ -7,7 +7,7 @@ Welcome to desdeo-restful's documentation!
 ==========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    restful
