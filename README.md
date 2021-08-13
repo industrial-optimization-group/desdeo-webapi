@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/desdeo-restful/badge/?version=latest)](https://desdeo-restful.readthedocs.io/en/latest/?badge=latest)
+
 # desdeo-restful
 
 `desdeo-restful` is a (restful) web API that exposes parts of the DESDEO framework to be used in web applications
@@ -24,7 +26,8 @@ TODO
 
 ## Documentation
 
-The documentation of API implemented in `desdeo-restful` is available on readthedocs. The documentation is not complete. (TODO)
+The documentation of API implemented in `desdeo-restful` is available on [readthedocs](https://desdeo-restful.readthedocs.io/en/latest/?badge=latest).
+The documentation is not in any way or form complete yet.
 
 ## Assumptions
 
@@ -44,9 +47,10 @@ This is a list of assumptions that hold throughout `desdeo-restful`. They should
 - Solving multiobjective optimization problems with analytical and discrete formulations using the following interactive methods:
   - Synchronous NIMBUS
   - The reference point method
+  - NAUTILUS Navigator
 
 ### WIP
 
 - Defining multiobjective optimization problems with discrete formulations.
 - Solving multiobjective optimization problems with discrete formulation using the following interactive methods:
-  - NAUTILUS Navigator
+  - Many
