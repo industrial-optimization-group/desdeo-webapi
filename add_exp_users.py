@@ -7,10 +7,10 @@ import string
 import dill
 import numpy as np
 import pandas as pd
-from desdeo_problem.Objective import _ScalarObjective
-from desdeo_problem.Problem import DiscreteDataProblem
+from desdeo_problem.problem import _ScalarObjective
+from desdeo_problem.problem import DiscreteDataProblem
 from desdeo_problem.surrogatemodels.lipschitzian import LipschitzianRegressor
-from desdeo_problem.Variable import Variable
+from desdeo_problem.problem import Variable
 
 from app import db
 from models.problem_models import Problem as ProblemModel
@@ -69,7 +69,7 @@ def add_sus_problem(username):
     else:
         id = user_query.id
 
-    file_name = "./data/approximationPF_Sustainability_MOP_Finland_MoreSol.csv"
+    file_name = "./tests/data/testPF_3f_11x_max_named.csv"
 
     data = pd.read_csv(file_name)
     # minus because all are to be maximized
@@ -89,7 +89,7 @@ def add_sus_problem(username):
     db.session.add(
         ProblemModel(
             name="Sustainability problem",
-            problem_type="discrete",
+            problem_type="Discrete",
             problem_pickle=problem,
             user_id=id,
             minimize=json.dumps([-1, -1, -1]),

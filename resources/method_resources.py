@@ -167,7 +167,7 @@ class MethodControl(Resource):
         db.session.commit()
 
         # ok
-        return {"response": json.loads(response)}, 200
+        return {"response": response}, 200
 
     @jwt_required()
     def post(self):

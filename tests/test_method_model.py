@@ -494,7 +494,7 @@ class TestNautilusNavigator(TestCase):
 
         assert response.status_code == 200
 
-        content = json.loads(response.data)["response"]
+        content = json.loads(json.loads(response.data)["response"])
 
         # first iteration
         assert content["step_number"] == 1
