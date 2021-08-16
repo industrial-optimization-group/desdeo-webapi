@@ -458,7 +458,7 @@ class TestNautilusNavigator(TestCase):
         # start method
         response = self.app.get(
             "/method/control",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={"Authorization": f"Bearer {atoken}"},
         )
 
         assert response.status_code == 200
@@ -494,7 +494,7 @@ class TestNautilusNavigator(TestCase):
 
         assert response.status_code == 200
 
-        content = json.loads(json.loads(response.data)["response"])
+        content = json.loads((response.data))["response"]
 
         # first iteration
         assert content["step_number"] == 1
@@ -526,7 +526,7 @@ class TestNautilusNavigator(TestCase):
 
         assert response.status_code == 200
 
-        content = json.loads(json.loads(response.data)["response"])
+        content = json.loads(response.data)["response"]
 
         # iterated once
         assert content["step_number"] == 2
@@ -542,10 +542,10 @@ class TestNautilusNavigator(TestCase):
 
             assert response.status_code == 200
 
-            content = json.loads(json.loads(response.data)["response"])
+            content = json.loads(response.data)["response"]
             responses.append(content)
 
-        content = json.loads(json.loads(response.data)["response"])
+        content = json.loads(response.data)["response"]
 
         assert content["step_number"] == 100
         assert content["steps_remaining"] == 1
@@ -568,7 +568,7 @@ class TestNautilusNavigator(TestCase):
 
         assert response.status_code == 200
 
-        content = json.loads(json.loads(response.data)["response"])
+        content = json.loads(response.data)["response"]
 
         assert content["step_number"] == 59
         assert content["steps_remaining"] == 42

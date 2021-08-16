@@ -158,7 +158,10 @@ class MethodControl(Resource):
         request = method.start()
         if isinstance(request, tuple):  # TODO: not needed once NIMBUS no more returns tuples
             request = request[0]
-        response = json.dumps(request.content, cls=NumpyEncoder)
+        # We dump the data here temporarily because the data must be encoded using a custom encoder to be first parsed
+        # into valid JSON, then we load it again before returning.
+        # ignore_nan will result in np.nan to be converted to valid null in JSON
+        response = json.dumps(request.content, cls=NumpyEncoder, ignore_nan=True)
 
         # set status to iterating and last_request
         method_query.status = "ITERATING"
@@ -167,7 +170,9 @@ class MethodControl(Resource):
         db.session.commit()
 
         # ok
-        return {"response": response}, 200
+        # flask-restx will automatically parse the return value from Python dicts to valid JSON, this is why
+        # we load the response in the return dict.
+        return {"response": json.loads(response)}, 200
 
     @jwt_required()
     def post(self):
@@ -232,7 +237,7 @@ class MethodControl(Resource):
         except Exception as e:
             print(f"DEBUG: {e}")
             # error, could not iterate, internal server error
-            last_request_dump = json.dumps(last_request.content, cls=NumpyEncoder)
+            last_request_dump = json.dumps(last_request.content, cls=NumpyEncoder, ignore_nan=True)
             return {
                 "message": "Could not iterate the method with the given response",
                 "last_request": last_request_dump,
@@ -240,7 +245,11 @@ class MethodControl(Resource):
 
         if isinstance(new_request, tuple):  # TODO: not needed once NIMBUS no more returns tuples
             new_request = new_request[0]
-        response = json.dumps(new_request.content, cls=NumpyEncoder)
+        # we dump the response first so that we can have it encoded into valid JSON using a custom encoder
+        # ignore_nan=True will ensure np.nan is coverted to valid JSON value 'null'.
+        response = json.dumps(new_request.content, cls=NumpyEncoder, ignore_nan=True)
 
         # ok
-        return {"response": response}, 200
+        # We will deserialize the response into a Python dict here because flask-restx will automatically
+        # serialize the response into valid JSON.
+        return {"response": json.loads(response)}, 200
