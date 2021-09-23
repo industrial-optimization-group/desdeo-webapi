@@ -6,6 +6,7 @@ import pytest
 import simplejson as json
 from app import app, db
 from desdeo_problem.testproblems import test_problem_builder as problem_builder
+from desdeo_emo.EAs import RVEA
 from flask_testing import TestCase
 from models.method_models import Method
 from models.problem_models import Problem
@@ -41,9 +42,51 @@ class TestMethod(TestCase):
         db.session.remove()
         db.drop_all()
 
-    def testDummy(self):
-        assert True
+    def login(self, uname="test_user", pword="pass"):
+        # login and get access token for test user
+        payload = json.dumps({"username": uname, "password": pword})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
 
+        access_token = data["access_token"]
+
+        return access_token
+
+    def testCreateRVEA(self):
+        """ Test that RVEA is properly created and added to the database via an HTTP call.
+        """
+        access_token = self.login()
+
+        # fetch problem id
+        problem_id = Problem.query.filter_by(name="DTLZ2").first().id 
+
+        payload = json.dumps({"problem_id": problem_id, "method": "rvea"})
+
+        response = self.app.post(
+            "/method/create",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # fetch user id
+        user_id = UserModel.query.filter_by(username="test_user").first().id
+
+        # check method properly in DB
+        method = Method.query.filter_by(user_id=user_id).first().method_pickle
+
+        assert isinstance(method, RVEA)
+
+        # check it is interactive
+        assert method.interact  # True
+
+        # check the status of the method is proper
+        method_status = Method.query.filter_by(user_id=user_id).first().status
+
+        assert method_status == "NOT STARTED"
+        
 """
     def testCreateModelManually(self):
         # fetch problem
