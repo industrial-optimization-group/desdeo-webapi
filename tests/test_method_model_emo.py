@@ -108,6 +108,9 @@ class TestMethod(TestCase):
         # Check that all possible responses are present
         assert len(data["response"]) == 4
 
+        # Check that preference type is unselected
+        assert data["preference_type"] == -1
+
         # Check that each response contains a 'message' entry
         assert all(["message" in r for r in data["response"]])
 

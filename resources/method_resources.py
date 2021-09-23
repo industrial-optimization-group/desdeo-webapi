@@ -42,6 +42,7 @@ method_control_parser.add_argument(
     required=True,
 )
 method_control_parser.add_argument("stop", type=bool, help="Stop and get solution?", default=False)
+method_control_parser.add_argument("preference_type", type=int, help="The preference type chosen. Indexing starts at 0, -1 indicates no preference type has been chosen.", default=False)
 
 
 class MethodCreate(Resource):
@@ -182,7 +183,16 @@ class MethodControl(Resource):
         # ok
         # flask-restx will automatically parse the return value from Python dicts to valid JSON, this is why
         # we load the response in the return dict.
-        return {"response": json.loads(response)}, 200
+        if isinstance(method, RVEA):  # probably true for all EAs
+            ## EA METHOD
+            # Due to how EAs handle preference types, we need to also ask which
+            # preference type has been selected.
+            return {"response": json.loads(response), "preference_type": -1}, 200
+        else:
+            ## MCDM method
+            # In MCDM methods, preferences are handles in a monolithic fashion (i.e., always one preference object
+            # and any choices are handled IN the preference object instead of having multiple objects.)
+            return {"response": json.loads(response)}, 200
 
     @jwt_required()
     def post(self):
