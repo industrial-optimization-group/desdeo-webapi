@@ -127,138 +127,60 @@ class TestMethod(TestCase):
         assert isinstance(last_request[1], NonPreferredSolutionPreference)
         assert isinstance(last_request[2], ReferencePointPreference)
         assert isinstance(last_request[3], BoundPreference)
+
+    def testIterateRVEA(self):
+        access_token = self.login()
+        self.add_method()
+
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # Ok
+        assert response.status_code == 200
         
-"""
-    def testCreateModelManually(self):
-        # fetch problem
-        problem_pickle = Problem.query.filter_by(name="setup_test_problem_1").first()
-        problem = problem_pickle.problem_pickle
+        def iterate(preference: list, preference_type: int, access_token: str = access_token) -> dict:
+            response = {"response": {"preference_data": preference}, "preference_type": preference_type}
+            payload = json.dumps(response)
 
-        # create method and add it to the database
-        objective_names = ["check", "me", "out"]
-        method = ReferencePointMethod(problem, problem.ideal, problem.nadir, objective_names=objective_names)
+            response = self.app.post(
+                "/method/control",
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+                data=payload,
+            )
 
-        db.session.add(
-            Method(name="ref_point_method", method_pickle=method, user_id=1, minimize=problem_pickle.minimize)
-        )
-        db.session.commit()
+            return response
 
-        # fetch the newly added method
-        method_pickle = Method.query.filter_by(user_id=1).first()
+        # Iterate with PreferredSolutionPreference
+        preference_type = 0
+        response = iterate([1,2,3], preference_type)
 
-        method_unpickle = method_pickle.method_pickle
-
-        # check the method
-        npt.assert_almost_equal(method_unpickle._problem.nadir, problem.nadir)
-        npt.assert_almost_equal(method_unpickle._problem.ideal, problem.ideal)
-
-        assert objective_names == method_unpickle._objective_names
-
-    def testGetMethod(self):
-        payload = json.dumps({"username": "test_user", "password": "pass"})
-        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
-        data = json.loads(response.data)
-
-        access_token = data["access_token"]
-
-        response = self.app.get(
-            "/method/create",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-
-        # no method should be defined yet
-        assert response.status_code == 404
-
-    def testCreateMethod(self):
-        payload = json.dumps({"username": "test_user", "password": "pass"})
-        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
-        data = json.loads(response.data)
-
-        access_token = data["access_token"]
-        payload = json.dumps({"problem_id": 1, "method": "reference_point_method"})
-
-        # no methods should exist for the user test_user yet
-        assert Method.query.filter_by(user_id=1).all() == []
-
-        response = self.app.post(
-            "/method/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
-            data=payload,
-        )
-
-        # created
-        assert response.status_code == 201
-
-        # one method should exist for the user test_user
-        assert len(Method.query.filter_by(user_id=1).all()) == 1
-        assert Method.query.filter_by(user_id=1).first().name == "reference_point_method"
-
-        payload = json.dumps({"problem_id": 1, "method": "reference_point_method_alt"})
-        response = self.app.post(
-            "/method/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
-            data=payload,
-        )
-
-        # created
-        assert response.status_code == 201
-
-        # one method should still only exist
-        assert len(Method.query.filter_by(user_id=1).all()) == 1
-        assert Method.query.filter_by(user_id=1).first().name == "reference_point_method_alt"
-
-    def testMethodControlGet(self):
-        payload = json.dumps({"username": "test_user", "password": "pass"})
-        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
-        data = json.loads(response.data)
-
-        access_token = data["access_token"]
-        payload = json.dumps({"problem_id": 1, "method": "reference_point_method"})
-
-        # no methods should exist for the user test_user yet
-        assert Method.query.filter_by(user_id=1).all() == []
-
-        response = self.app.get(
-            "/method/control",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-
-        # not found
-        assert response.status_code == 404
-
-        # create method
-        response = self.app.post(
-            "/method/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
-            data=payload,
-        )
-
-        # created
-        assert response.status_code == 201
-
-        # check that no request is set and status is NOT STARTED
-        assert len(Method.query.filter_by(user_id=1).all()) == 1
-        method_query = Method.query.filter_by(user_id=1).first()
-
-        assert method_query.status == "NOT STARTED"
-        assert method_query.last_request is None
-
-        # get
-        response = self.app.get(
-            "/method/control",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-
-        # check that a request is set and status is ITERATING
-        assert len(Method.query.filter_by(user_id=1).all()) == 1
-        method_query = Method.query.filter_by(user_id=1).first()
-
-        assert method_query.status == "ITERATING"
-        assert method_query.last_request is not None
-
-        # ok
+        # OK
         assert response.status_code == 200
 
+        # Iterate with non-preferred solutionis preference
+        preference_type = 1
+        response = iterate([1,2,3], preference_type)
+
+        # OK
+        assert response.status_code == 200
+
+        # Iterate with reference point
+        preference_type = 2
+        response = iterate([0.5, 0.5, 0.5, 0.5], preference_type)
+
+        # OK
+        assert response.status_code == 200
+
+        # Iterate with bounds info
+        preference_type = 3
+        response = iterate([[0.5, 0.7], [0.2, 0.5], [0.1, 0.5], [0.2, 0.6]], preference_type)
+
+        # OK
+        assert response.status_code == 200
+        
+"""
     def testMethodControlNIMBUS(self):
         payload = json.dumps({"username": "test_user", "password": "pass"})
         response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)

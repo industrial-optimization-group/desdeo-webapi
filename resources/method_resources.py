@@ -11,6 +11,8 @@ from models.method_models import Method
 from models.problem_models import Problem
 from models.user_models import UserModel
 from utilities.expression_parser import NumpyEncoder, numpify_dict_items
+import pandas as pd
+import numpy as np
 
 available_methods = {
     "reference_point_method": ReferencePointMethod,
@@ -220,13 +222,21 @@ class MethodControl(Resource):
         # need to make deepcopy to have a new mem addres so that sqlalchemy updates the pickle
         # TODO: use a Mutable column
         method = deepcopy(method_query.method_pickle)
+
+        if isinstance(method, RVEA):  # EA methods (RVEA for now) require that a preference type is chosen.
+            if data["preference_type"] < 0:
+                # preference type not specified
+                return {
+                    "message": (
+                    "When using evolutionary methods, the entry in the JSON response "
+                    "'preference_type' must be greater than -1."
+                    )
+                }, 400
+
         last_request = method_query.last_request
 
         # cast lists, which have numerical content, to numpy arrays
         user_response = numpify_dict_items(user_response_raw)
-
-        if isinstance(last_request, tuple):  # TODO: not needed once NIMBUS no more returns tuples
-            last_request = last_request[0]
 
         try:
             if isinstance(method, NautilusNavigator) and user_response["go_to_previous"]:
@@ -248,8 +258,35 @@ class MethodControl(Resource):
                     user_response["navigation_point"],
                 )
 
-            last_request.response = user_response
+            if isinstance(method, RVEA):  # and probably other EAs as well
+                preference_type = data["preference_type"]
+                if preference_type >= len(last_request):
+                    # index out of range
+                    raise IndexError(f"Index {preference_type} out of bounds.")
+                else:
+                    last_request = last_request[preference_type]
+
+                if preference_type in [0, 1]:
+                    # handle the preferences where a numpy array is expected
+                    last_request.response = user_response["preference_data"]
+                else:
+                    np_preference = np.atleast_2d(user_response["preference_data"])
+
+                    if preference_type == 2:
+                        # expects pandas dataframe
+                        columns = last_request.content["dimensions_data"]
+                        last_request.response = pd.DataFrame(np_preference, columns=columns.columns)
+                    else:
+                        # preference_type 4
+                        # expects numpy
+                        last_request.response = np_preference
+            else:
+                last_request.response = user_response
+
             new_request = method.iterate(last_request)
+            if isinstance(new_request, tuple):  # For methods that return mutliple object from an iterate call (e.g., NIMBUS (for now) and EA methods)
+                new_request = new_request[0]
+
             method_query.method_pickle = method
             method_query.last_request = new_request
             db.session.commit()
@@ -263,11 +300,13 @@ class MethodControl(Resource):
                 "last_request": last_request_dump,
             }, 500
 
-        if isinstance(new_request, tuple):  # TODO: not needed once NIMBUS no more returns tuples
-            new_request = new_request[0]
         # we dump the response first so that we can have it encoded into valid JSON using a custom encoder
         # ignore_nan=True will ensure np.nan is coverted to valid JSON value 'null'.
-        response = json.dumps(new_request.content, cls=NumpyEncoder, ignore_nan=True)
+        if isinstance(method, RVEA): # EA methods handle a bit differently, multiple requests to be handled
+            contents = [json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in new_request]
+            response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)
+        else:
+            response = json.dumps(new_request.content, cls=NumpyEncoder, ignore_nan=True)
 
         # ok
         # We will deserialize the response into a Python dict here because flask-restx will automatically
