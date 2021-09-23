@@ -160,12 +160,18 @@ class MethodControl(Resource):
 
         # start the method and set response
         request = method.start()
-        if isinstance(request, tuple):  # TODO: not needed once NIMBUS no more returns tuples
+        if isinstance(request, tuple):
+            # needed when multiple requests are returned as separate objects. This is needed in, e.g., NIMBUS and EA methods.
             request = request[0]
+
         # We dump the data here temporarily because the data must be encoded using a custom encoder to be first parsed
         # into valid JSON, then we load it again before returning.
         # ignore_nan will result in np.nan to be converted to valid null in JSON
-        response = json.dumps(request.content, cls=NumpyEncoder, ignore_nan=True)
+        if isinstance(method, RVEA): # EA methods handle a bit differently, multiple requests to be handled
+            contents = [json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request]
+            response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)
+        else:
+            response = json.dumps(request.content, cls=NumpyEncoder, ignore_nan=True)
 
         # set status to iterating and last_request
         method_query.status = "ITERATING"

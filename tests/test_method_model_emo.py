@@ -52,9 +52,7 @@ class TestMethod(TestCase):
 
         return access_token
 
-    def testCreateRVEA(self):
-        """ Test that RVEA is properly created and added to the database via an HTTP call.
-        """
+    def add_method(self):
         access_token = self.login()
 
         # fetch problem id
@@ -71,6 +69,11 @@ class TestMethod(TestCase):
         # created
         assert response.status_code == 201
 
+    def testCreateRVEA(self):
+        """ Test that RVEA is properly created and added to the database via an HTTP call.
+        """
+        self.add_method()
+
         # fetch user id
         user_id = UserModel.query.filter_by(username="test_user").first().id
 
@@ -86,6 +89,32 @@ class TestMethod(TestCase):
         method_status = Method.query.filter_by(user_id=user_id).first().status
 
         assert method_status == "NOT STARTED"
+
+    def testStartRVEA(self):
+        access_token = self.login()
+        self.add_method()
+
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        # Ok
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        # Check that all possible responses are present
+        assert len(data["response"]) == 4
+
+        # Check that each response contains a 'message' entry
+        assert all(["message" in r for r in data["response"]])
+
+        # Check method status in DB
+        method_status = Method.query.filter_by(id=1).first().status
+
+        assert method_status == "ITERATING"
+        
         
 """
     def testCreateModelManually(self):

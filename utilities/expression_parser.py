@@ -5,12 +5,21 @@ import numpy as np
 import simplejson as json
 from sympy import lambdify, symbols
 from sympy.parsing.sympy_parser import parse_expr
+from pandas import DataFrame
 
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
+        if isinstance(obj, DataFrame):
+            return obj.to_json()
+        if hasattr(obj, "__call__"):
+            # do not serialize function objects
+            if hasattr(obj, "__name__"):
+                return obj.__name__
+            else:
+                return "Some non-serializable function object."
         return json.JSONEncoder.default(self, obj)
 
 
