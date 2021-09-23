@@ -4,6 +4,7 @@ import simplejson as json
 from app import db
 from desdeo_mcdm.interactive import NIMBUS, NautilusNavigator, NautilusNavigatorRequest, ReferencePointMethod
 from desdeo_problem.problem.Problem import DiscreteDataProblem
+from desdeo_emo.EAs import RVEA
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.method_models import Method
@@ -16,6 +17,7 @@ available_methods = {
     "reference_point_method_alt": ReferencePointMethod,  # for testing purposes only!
     "synchronous_nimbus": NIMBUS,
     "nautilus_navigator": NautilusNavigator,
+    "rvea": RVEA
 }
 
 method_create_parser = reqparse.RequestParser()
