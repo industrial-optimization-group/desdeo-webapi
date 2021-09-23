@@ -179,6 +179,26 @@ class TestMethod(TestCase):
 
         # OK
         assert response.status_code == 200
+
+        # End
+        preference_type = -1
+        response = iterate(None, preference_type)
+
+        # OK
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        result = data["response"]
+
+        assert "individuals" in result
+        assert "objectives" in result
+
+        # Bad preference_type
+        preference_type = 42
+        response = iterate(None, preference_type)
+
+        assert response.status_code == 400
+
         
 """
     def testMethodControlNIMBUS(self):

@@ -44,7 +44,7 @@ method_control_parser.add_argument(
     required=True,
 )
 method_control_parser.add_argument("stop", type=bool, help="Stop and get solution?", default=False)
-method_control_parser.add_argument("preference_type", type=int, help="The preference type chosen. Indexing starts at 0, -1 indicates no preference type has been chosen.", default=False)
+method_control_parser.add_argument("preference_type", type=int, help="The preference type chosen. Indexing starts at 0, -1 indicates no preference type has been chosen.", default=None)
 
 
 class MethodCreate(Resource):
@@ -224,14 +224,20 @@ class MethodControl(Resource):
         method = deepcopy(method_query.method_pickle)
 
         if isinstance(method, RVEA):  # EA methods (RVEA for now) require that a preference type is chosen.
-            if data["preference_type"] < 0:
+            if data["preference_type"] < -1:
                 # preference type not specified
                 return {
                     "message": (
                     "When using evolutionary methods, the entry in the JSON response "
-                    "'preference_type' must be greater than -1."
+                    "'preference_type' must be either positive, or -1 to indicate termination."
                     )
                 }, 400
+            elif data["preference_type"] == -1:
+                # do non-dominated sorting and return
+                pop_vars, pop_objs = method.end()
+                response = json.dumps({"individuals": pop_vars, "objectives": pop_objs}, cls=NumpyEncoder, ignore_nan=True)
+                return {"response": json.loads(response)}, 200
+
 
         last_request = method_query.last_request
 
@@ -258,18 +264,23 @@ class MethodControl(Resource):
                     user_response["navigation_point"],
                 )
 
+            preference_type = data["preference_type"]
             if isinstance(method, RVEA):  # and probably other EAs as well
-                preference_type = data["preference_type"]
                 if preference_type >= len(last_request):
                     # index out of range
-                    raise IndexError(f"Index {preference_type} out of bounds.")
+                    # preference type not specified
+                    return {
+                        "message": (
+                            f"Preference type index '{preference_type}' not valid."
+                        )
+                    }, 400
                 else:
                     last_request = last_request[preference_type]
 
                 if preference_type in [0, 1]:
                     # handle the preferences where a numpy array is expected
                     last_request.response = user_response["preference_data"]
-                else:
+                elif preference_type in [2, 3]:
                     np_preference = np.atleast_2d(user_response["preference_data"])
 
                     if preference_type == 2:
@@ -280,6 +291,14 @@ class MethodControl(Resource):
                         # preference_type 4
                         # expects numpy
                         last_request.response = np_preference
+                else:
+                    # preference type not specified
+                    # the program should never reach this point...
+                    return {
+                        "message": (
+                            f"Preference type index '{preference_type}' not valid."
+                        )
+                    }, 400
             else:
                 last_request.response = user_response
 
