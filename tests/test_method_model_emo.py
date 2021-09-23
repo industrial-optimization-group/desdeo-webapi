@@ -5,7 +5,7 @@ import numpy.testing as npt
 import pytest
 import simplejson as json
 from app import app, db
-from desdeo_problem.testproblems import test_problem_builder
+from desdeo_problem.testproblems import test_problem_builder as problem_builder
 from flask_testing import TestCase
 from models.method_models import Method
 from models.problem_models import Problem
@@ -33,7 +33,7 @@ class TestMethod(TestCase):
         user_id = UserModel.query.filter_by(username="test_user").first().id
 
         # add DTLZ2 for test_user
-        problem = test_problem_builder("DTLZ2", n_of_variables=5, n_of_objectives=4)
+        problem = problem_builder("DTLZ2", n_of_variables=5, n_of_objectives=4)
         db.session.add(Problem(name="DTLZ2", problem_type="Analytical", problem_pickle=problem, user_id=user_id, minimize="[1, 1, 1, 1]"))
         db.session.commit()
 
