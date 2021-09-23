@@ -7,6 +7,7 @@ import simplejson as json
 from app import app, db
 from desdeo_problem.testproblems import test_problem_builder as problem_builder
 from desdeo_emo.EAs import RVEA
+from desdeo_tools.interaction import BoundPreference, NonPreferredSolutionPreference, PreferredSolutionPreference, ReferencePointPreference
 from flask_testing import TestCase
 from models.method_models import Method
 from models.problem_models import Problem
@@ -111,10 +112,18 @@ class TestMethod(TestCase):
         assert all(["message" in r for r in data["response"]])
 
         # Check method status in DB
-        method_status = Method.query.filter_by(id=1).first().status
+        method_q = Method.query.filter_by(id=1).first()
+        method_status = method_q.status
 
         assert method_status == "ITERATING"
-        
+
+        # Check the status types in the database method object
+        last_request = method_q.last_request
+
+        assert isinstance(last_request[0], PreferredSolutionPreference)
+        assert isinstance(last_request[1], NonPreferredSolutionPreference)
+        assert isinstance(last_request[2], ReferencePointPreference)
+        assert isinstance(last_request[3], BoundPreference)
         
 """
     def testCreateModelManually(self):
