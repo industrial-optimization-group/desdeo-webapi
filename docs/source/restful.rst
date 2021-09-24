@@ -134,8 +134,8 @@ Managing multiobjective optimization problems
         "problem_id": 1,
       }
 
+    :reqheader Authorization: A JWT access token. Example ``Bearer <access token>``
     :<json number problem_id: The id of the problem.
-    :reqheader Authorization: An JWT access token. Example ``Bearer <access token>``
 
     :>json array objective_names: An arrays of strings with objective names.
     :>json array variable_names: An arrays of strings with variable names.
@@ -152,9 +152,87 @@ Managing multiobjective optimization problems
     :statuscode 404: problem with given ``problem_id`` not found
     :statuscode 500: internal server error
 
-Create interactive methods for solving multiobjective optimization problems
----------------------------------------------------------------------------
-TBD
+Setup an interactive method for solving multiobjective optimization problems
+----------------------------------------------------------------------------
+
+.. http:get:: /method/create
+
+  Check if a method has already been defined.
+
+  **Example request**
+
+  .. sourcecode:: http
+
+    GET /method/create HTTP/1.1
+    Host: example.com
+
+  **Example response**
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Vary: Accept
+    Content-Type: application/json
+
+    {
+      "message": "Method found!", 
+    }
+
+  :reqheader Authorization: A JWT access token. Example ``Bearer <access token>``
+
+  :>json object response: A JSON-object with a ``message`` (*string*) entry revealing if a method has been defined.
+
+  :statuscode 200: ok, a method has been defined
+  :statuscode 404: no defined method found
+
+.. http:post:: /method/create
+
+  Initialize a new interactive method with an existing problem.
+
+  .. note::
+
+    For now, setting initialization parameters of interactive methods using the web API
+    is not supported. This feature is work in progress.
+
+  **Example request**
+
+  .. sourcecode:: http
+
+    POST /method/create HTTP/1.1
+    Host: example.com
+    Accept: application/json
+
+    {
+      "problem_id": 0,
+      "method": "reference_point_method",
+    }
+
+  **Example response**
+
+  .. sourcecode:: http
+
+    HTTP/1.1 201 Created
+    Vary: Accept
+    Content-Type: application/json
+
+    {
+      "method": "reference_point_method",
+      "owner": "username",
+    }
+
+  :reqheader Authorization: A JWT access token. Example ``Bearer <access token>``
+  :<json number problem_id: The id of the problem the method should be initialized with.
+
+  :>json string method: The name of the initialized method.
+  :>json string owner: The username of the initialized method's owner.
+
+  :statuscode 201: created, the method was initialized successfully
+  :statuscode 404: not found, either no method with the given name in ``method`` was found or no problem with id ``problem_id`` was found.
+    See the ``message`` entry in the response for additional details.
+  :statuscode 406: not acceptable, returned in the case, for example, when an attempt has been made to initialize a method
+    with a problem of an unsupported type. For example, this code will be returned if NAUTILUS Navigator is attempted
+    to be initialized with a problem of an analytical type.
+  :statuscode 500: internal server error, something went wrong when attempting to initialize the method.
 
 Operate interactive methods for solving multiobjective optimization problems
 ----------------------------------------------------------------------------
@@ -243,8 +321,15 @@ This field will contain
 all the relevant information that is needed to show information about the problem being solved and the state of the 
 interactive method. This information can then be used, for example, to show relevant visualizations in a graphical user interface.
 
-Below, a short summary of the contents of these JSON objects is given. For additional information, one should check DESDEO's
-documentation for the different methods.
+.. note::
+
+  For EA methods, sometimes a 'response' field will not be present. See `RVEA`_.
+
+Below, a short summary of the contents of these JSON objects is given for some
+methods.  For additional information, one should check DESDEO's documentation
+for the different methods both in `desdeo-mcdm's documentation
+<https://desdeo-mcdm.readthedocs.io/en/latest/>`_ and in `desdeo-emo's
+documentation <https://desdeo-emo.readthedocs.io/en/latest/index.html>`_.
 
 NAUTILUS Navigator
 ------------------
@@ -313,7 +398,7 @@ RVEA
   possible using the web API.  This means that default values will be used. See
   `RVEA in desdeo-emo's documenation
   <https://desdeo-emo.readthedocs.io/en/latest/autoapi/desdeo_emo/EAs/RVEA/index.html#desdeo_emo.EAs.RVEA.RVEA>`_
-  for the default values.
+  for the default values. **RVEA will be initialized in its interactive form when used through the web API.**
 
 The requests returned by `GET` and `POST` contain a JSON object with both a `response` and
 `preference_type` field. An example of a JSON object returned by RVEA is shown below:

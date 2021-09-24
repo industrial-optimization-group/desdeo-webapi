@@ -173,24 +173,6 @@ class TestMethod(TestCase):
         assert "individuals" in data
         assert "objectives" in data
 
-        data = json.loads(response.data)
-        print("--------------------DICT START")
-        for r in data["response"]:
-            rd = json.loads(r)
-            for k in rd:
-                if k != "dimensions_data":
-                    print(f"\t{k}: {type(rd[k])}")
-                else:
-                    name_key = "('f1',)"
-                    print(f"\t{k}_0: {json.dumps(json.loads(rd[k])[name_key])}")
-                    """
-                    loaded = json.loads(rd[k])
-                    for kk in loaded:
-                        print(f"\t{kk}: {loaded[kk]}")
-                    """
-            print("")
-        print("--------------------DICT END-------------------------------------")
-
         # Iterate with non-preferred solutionis preference
         preference_type = 1
         response = iterate([1,2,3], preference_type)

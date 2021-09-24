@@ -110,7 +110,12 @@ class MethodCreate(Resource):
                 message = "Currently NAUTILUS Navigator supports only the solving of discrete problem."
                 return {"message": message}, 406
         elif method_name == "rvea":
-            method = RVEA(problem, interact=True)
+            if query.problem_type == "Analytical":
+                method = RVEA(problem, interact=True)
+            else:
+                # not analytical problem
+                message = "Currently RVEA supports only analytical problem types."
+                return {"message": message}, 406
         else:
             # internal error
             return {"message": f"For some reason could not initialize method {method_name}"}, 500
