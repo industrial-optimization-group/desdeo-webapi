@@ -173,6 +173,8 @@ class MethodControl(Resource):
         if isinstance(method, RVEA): # EA methods handle a bit differently, multiple requests to be handled
             contents = [json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request]
             response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)
+            ea_individuals = json.dumps(method.population.individuals, cls=NumpyEncoder, ignore_nan=True)
+            ea_objectives = json.dumps(method.population.objectives, cls=NumpyEncoder, ignore_nan=True)
         else:
             response = json.dumps(request.content, cls=NumpyEncoder, ignore_nan=True)
 
@@ -189,7 +191,7 @@ class MethodControl(Resource):
             ## EA METHOD
             # Due to how EAs handle preference types, we need to also ask which
             # preference type has been selected.
-            return {"response": json.loads(response), "preference_type": -1}, 200
+            return {"response": json.loads(response), "preference_type": -1, "individuals": json.loads(ea_individuals), "objectives": json.loads(ea_objectives)}, 200
         else:
             ## MCDM method
             # In MCDM methods, preferences are handles in a monolithic fashion (i.e., always one preference object
@@ -234,9 +236,9 @@ class MethodControl(Resource):
                 }, 400
             elif data["preference_type"] == -1:
                 # do non-dominated sorting and return
-                pop_vars, pop_objs = method.end()
-                response = json.dumps({"individuals": pop_vars, "objectives": pop_objs}, cls=NumpyEncoder, ignore_nan=True)
-                return {"response": json.loads(response)}, 200
+                ea_individuals, ea_objectives = method.end()
+                response = json.dumps({"individuals": ea_individuals, "objectives": ea_objectives}, cls=NumpyEncoder, ignore_nan=True)
+                return json.loads(response), 200
 
 
         last_request = method_query.last_request
@@ -324,10 +326,17 @@ class MethodControl(Resource):
         if isinstance(method, RVEA): # EA methods handle a bit differently, multiple requests to be handled
             contents = [json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in new_request]
             response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)
+            ea_individuals = json.dumps(method.population.individuals, cls=NumpyEncoder, ignore_nan=True)
+            ea_objectives = json.dumps(method.population.objectives, cls=NumpyEncoder, ignore_nan=True)
+
+            # ok
+            # We will deserialize the response into a Python dict here because flask-restx will automatically
+            # serialize the response into valid JSON.
+            return {"response": json.loads(response), "preference_type": -1, "individuals": json.loads(ea_individuals), "objectives": json.loads(ea_objectives)}, 200
         else:
             response = json.dumps(new_request.content, cls=NumpyEncoder, ignore_nan=True)
 
-        # ok
-        # We will deserialize the response into a Python dict here because flask-restx will automatically
-        # serialize the response into valid JSON.
-        return {"response": json.loads(response)}, 200
+            # ok
+            # We will deserialize the response into a Python dict here because flask-restx will automatically
+            # serialize the response into valid JSON.
+            return {"response": json.loads(response)}, 200

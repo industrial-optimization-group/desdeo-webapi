@@ -111,6 +111,14 @@ class TestMethod(TestCase):
         # Check that preference type is unselected
         assert data["preference_type"] == -1
 
+        # Check that the individuals (decision variables) are returned
+        assert "individuals" in data
+        assert len(data["individuals"]) > 0 and len(data["individuals"][0]) == 5
+
+        # Check that the objectives are returned
+        assert "objectives" in data
+        assert len(data["objectives"]) > 0 and len(data["objectives"][0]) == 4
+
         # Check that each response contains a 'message' entry
         assert all(["message" in r for r in data["response"]])
 
@@ -158,8 +166,13 @@ class TestMethod(TestCase):
 
         # OK
         assert response.status_code == 200
+        
+        data = json.loads(response.data)
+        assert "response" in data
+        assert "preference_type" in data
+        assert "individuals" in data
+        assert "objectives" in data
 
-        """
         data = json.loads(response.data)
         print("--------------------DICT START")
         for r in data["response"]:
@@ -170,12 +183,13 @@ class TestMethod(TestCase):
                 else:
                     name_key = "('f1',)"
                     print(f"\t{k}_0: {json.dumps(json.loads(rd[k])[name_key])}")
+                    """
                     loaded = json.loads(rd[k])
                     for kk in loaded:
                         print(f"\t{kk}: {loaded[kk]}")
+                    """
             print("")
         print("--------------------DICT END-------------------------------------")
-        """
 
         # Iterate with non-preferred solutionis preference
         preference_type = 1
@@ -183,6 +197,12 @@ class TestMethod(TestCase):
 
         # OK
         assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert "response" in data
+        assert "preference_type" in data
+        assert "individuals" in data
+        assert "objectives" in data
 
         # Iterate with reference point
         preference_type = 2
@@ -198,6 +218,12 @@ class TestMethod(TestCase):
         # OK
         assert response.status_code == 200
 
+        data = json.loads(response.data)
+        assert "response" in data
+        assert "preference_type" in data
+        assert "individuals" in data
+        assert "objectives" in data
+
         # End
         preference_type = -1
         response = iterate(None, preference_type)
@@ -206,10 +232,8 @@ class TestMethod(TestCase):
         assert response.status_code == 200
 
         data = json.loads(response.data)
-        result = data["response"]
-
-        assert "individuals" in result
-        assert "objectives" in result
+        assert "individuals" in data
+        assert "objectives" in data
 
         # Bad preference_type
         preference_type = 42

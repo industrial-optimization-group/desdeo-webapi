@@ -307,6 +307,14 @@ x must contain all the information that was present in the original response in 
 RVEA
 ----
 
+.. warning::
+
+  For the time being, setting the initialization parameters for RVEA is not
+  possible using the web API.  This means that default values will be used. See
+  `RVEA in desdeo-emo's documenation
+  <https://desdeo-emo.readthedocs.io/en/latest/autoapi/desdeo_emo/EAs/RVEA/index.html#desdeo_emo.EAs.RVEA.RVEA>`_
+  for the default values.
+
 The requests returned by `GET` and `POST` contain a JSON object with both a `response` and
 `preference_type` field. An example of a JSON object returned by RVEA is shown below:
 
@@ -330,6 +338,8 @@ The requests returned by `GET` and `POST` contain a JSON object with both a `res
       "dimensions_data": "...",
     }],
     "preference_type": "integer value",
+    "individuals": "...",
+    "objectives": "...",
   }
 
 The `validator` in the above response field in the JSON is a string with the name of the validator, which is used
@@ -360,7 +370,16 @@ of `dimensions_data` is as follows:
 In the above JSON object, the example contains `dimensions_data` for two objectives. Depeding on the problem, the
 names and number of objectives will vary.
 
-Lastly, the `preference_type` field is used to indicate which kind of preference information is given in a response
+The `individuals` and `objectives` fields contain the population (i.e., the individual decision variable vectors)
+and objective vector associated with each individual, respectively.
+
+.. note::
+
+  The `individuals` and `objectives` returned in requests from intermediatre iterations
+  are not necessarely non-dominated. When stopping the method (see below) returned solutions
+  will be non-dominated.
+
+The `preference_type` field is used to indicate which kind of preference information is given in a response
 returned from a client side application (i.e., in a `POST` request). In other words, this integer valued field is 
 used to select one of the responses in the list of objects in the `response` field in the JSON file at the beginning of
 this subsection. A positive integer value for `preference_type` will be understood as a selection of a preference type
@@ -371,14 +390,17 @@ as shown:
 .. sourcecode:: json
 
   {
-    "response":
-    {
-      "population": ["list elements"],
-      "objectives": ["list elements"],
-    },
+    "individuals": ["list elements"],
+    "objectives": ["list elements"],
   }
 
-When a `POST` request is made to the server, a JSON file with the following contents is expected in the request:
+.. note::
+
+  The `individuals` and `objectives` returned when stopping the mehtod will be non-dominated. Notice also that there is no
+  `response` field when stopping the method (this is to keep a consistent logic of having these two fields at "the top level" of 
+  the JSON objects, like in the ones returned from iterating the method).
+
+When iterating RVEA (a `POST` request is made to the server), a JSON file with the following contents is expected in the request:
 
 .. sourcecode:: json
 
