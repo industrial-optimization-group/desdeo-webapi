@@ -249,8 +249,8 @@ documentation for the different methods.
 NAUTILUS Navigator
 ------------------
 
-The request returned by 'GET' and 'POST' will
-return a JSON object with contents as shown below:
+The requests returned by 'GET' and 'POST' contain
+a JSON object with contents as shown below:
 
 .. sourcecode:: json
 
@@ -303,3 +303,157 @@ x must contain all the information that was present in the original response in 
 .. note::
   It is a good idea to store the information in each of the JSON objects returned by the requests issued by a client so that
   stepping back is possible to any point from the current point.
+
+RVEA
+----
+
+The requests returned by `GET` and `POST` contain a JSON object with both a `response` and
+`preference_type` field. An example of a JSON object returned by RVEA is shown below:
+
+.. sourcecode:: json
+
+  {
+    "response":
+    [{
+      "message": "...",
+      "validator": "...",
+    }, {
+      "message": "...",
+      "validator": "...",
+    }, {
+      "message": "...",
+      "validator": "...",
+      "dimensions_data": "...",
+    }, {
+      "message": "...",
+      "validator": "...",
+      "dimensions_data": "...",
+    }],
+    "preference_type": "integer value",
+  }
+
+The `validator` in the above response field in the JSON is a string with the name of the validator, which is used
+internally in DESDEO. Its use in a front-end application will be informative at best. On the
+other hand, `dimensions_data` contains useful information regarding individual objectives. An example of the contents
+of `dimensions_data` is as follows:
+
+.. sourcecode:: json
+
+  {
+    "dimensions_data":
+    {
+      "('f1',)":
+      {
+        "minimize": 1,
+        "ideal": "some_value",
+        "nadir": "some_value",
+      },
+      "('f2',)":
+      {
+        "minimize": 1,
+        "ideal": "some_value",
+        "nadir": "some_value",
+      },
+    }
+  }
+
+In the above JSON object, the example contains `dimensions_data` for two objectives. Depeding on the problem, the
+names and number of objectives will vary.
+
+Lastly, the `preference_type` field is used to indicate which kind of preference information is given in a response
+returned from a client side application (i.e., in a `POST` request). In other words, this integer valued field is 
+used to select one of the responses in the list of objects in the `response` field in the JSON file at the beginning of
+this subsection. A positive integer value for `preference_type` will be understood as a selection of a preference type
+while a value of '-1' will be understood as a request to stop the method and end iterating. A stop request will
+return the final population (i.e., decision variable vectors) and their associated objective vectors in a JSON file
+as shown:
+
+.. sourcecode:: json
+
+  {
+    "response":
+    {
+      "population": ["list elements"],
+      "objectives": ["list elements"],
+    },
+  }
+
+When a `POST` request is made to the server, a JSON file with the following contents is expected in the request:
+
+.. sourcecode:: json
+
+  {
+    "response":
+    {
+      "preference_data": "some data",
+      "preference_type": "integer value",
+    },
+  }
+
+In the above, the `preference_type` field is the same as discussed previously. The `preference_data` field
+contains preference information, which varies depending on the specified `preference_type`.
+
+For example, if preference is to be given by choosing available solutions from a list as indices
+of those solutions, the above JSON object might look as follows:
+
+.. sourcecode:: json
+
+  {
+    "response":
+    {
+      "preference_data": [2,4,1],
+      "preference_type": 0,
+    },
+  }
+
+Other types of preference available are: specifying indices of solution which
+are *not* preferred, specifying a reference point, and specifying a desired
+range for each objective as upper and lower bound pairs. Examples of JSON
+objects with different kinds of preference types for a problem with three
+objectives are as follows:
+
+Specifying indices of solutions which are *not* preferred:
+
+.. sourcecode:: json
+
+  {
+    "response":
+    {
+      "preference_data": [6,10,42],
+      "preference_type": 1,
+    },
+  }
+
+Specifying a reference point:
+
+.. sourcecode:: json
+
+  {
+    "response":
+    {
+      "preference_data": [0.2, 0.5, 0.1],
+      "preference_type": 2,
+    },
+  }
+
+Specifying a desired range for each objective as upper and lower bound pairs:
+
+.. sourcecode:: json
+
+  {
+    "response":
+    {
+      "preference_data":
+      [
+        [0.3, 0.6],
+        [0.2, 0.3],
+        [0.9, 1.0],
+      ],
+      "preference_type": 3,
+    },
+  }
+
+.. note::
+
+  For a more detailed discussion on the various preference types, please see the related page
+  in desdeo-emo's documentation: `Interaction in EAs <https://desdeo-emo.readthedocs.io/en/latest/notebooks/Example.html#Interaction-in-EAs>`_.
