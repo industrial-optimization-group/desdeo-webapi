@@ -32,6 +32,13 @@ $> git clone git@github.com:gialmisi/desdeo-webapi.git
 $> cd desdeo-webapi
 $> poetry install
 ```
+It is recommended to use virtual environemnts. If `poetry` was used to install the project
+as described above, one can switch to the virtual environment spawned by poetry by running the
+command:
+
+```
+$> potery shell
+```
 
 ## Usage
 
