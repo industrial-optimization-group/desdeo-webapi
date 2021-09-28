@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "desdeo-restful"
+name = "desdeo-webapi"
 version = "0.1.0"
 description = ""
 authors = ["Giovanni Misitano <giovanni.a.misitano@jyu.fi>"]
