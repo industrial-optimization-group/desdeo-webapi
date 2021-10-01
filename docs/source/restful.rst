@@ -2,11 +2,14 @@ HTTP endpoints
 ==============
 
 .. toctree
-    :maxdepth: 2
+    :maxdepth: 3
     :caption: Contents
 
 Login and Registration
 ----------------------
+
+Logging in
+^^^^^^^^^^
 
 .. http:post:: /login
 
@@ -53,6 +56,9 @@ Login and Registration
     :statuscode 404: ``username`` does not exist
     :statuscode 500: internal server error
 
+Registering
+^^^^^^^^^^^
+
 .. http:post:: /registration
 
     Register a new user with given username and password.
@@ -97,6 +103,9 @@ Login and Registration
 
 Managing multiobjective optimization problems
 ---------------------------------------------
+
+Accessing an existing problem
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. http:post:: /problem/access
 
@@ -152,8 +161,179 @@ Managing multiobjective optimization problems
     :statuscode 404: problem with given ``problem_id`` not found
     :statuscode 500: internal server error
 
+
+Query supported problem types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. http:get:: /problem/create
+
+    Query for the supported problem types.
+  
+    **Example request**
+  
+    .. sourcecode:: http
+
+      GET /problem/create HTTP/1.1
+      Host: example.com
+
+    **Example response**
+
+    .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Vary: Accept
+      Content-Type: application/json
+
+      {
+        "available_problem_types": ["Analytical", "Discrete"],
+      }
+    
+    :reqheader Authorization: A JWT access token. Example ``Bearer <access token>``
+
+    :>json array available_problem_types: An array of strings with the supported problem type names.
+
+    :statuscode 200: ok
+
+Create a new problem
+^^^^^^^^^^^^^^^^^^^^
+
+.. http:post:: /problem/create
+
+    Define a new multiobjective optimization problem.
+
+    .. note::
+      
+      Currently only problems with analytical or discrete formulations are supported.
+
+    **Example request (Discrete problem)**
+
+    Here we define a discrete problem with two variables and three (minimized) objectives with
+    four variable and objective vector pairs.
+
+    .. sourcecode:: http
+
+      POST /problem/create HTTP/1.1
+      Host: example.com
+      Accept: application/json
+
+      {
+        "problem_type": "Discrete",
+        "name": "Discrete problem",
+        "objectives": [[1,2,3], [4,5,6], [7,8,9], [10,11,12]],
+        "objective_names": ["z_1", "z_2", "z_3"],
+        "variables": [[1,2], [3,4], [5,6], [7,8]],
+        "variable_names": ["x_1", "x_2"],
+        "ideal": [0,0,0],
+        "nadir": [10, 10, 10],
+        "minimize": [1, 1, 1],
+      }
+
+    .. note::
+      
+      The variable and objectie vector pairs are expected to match one-to-one. In other words, it is assumed that
+      :math:`f(\mathbf{x}_i) = \mathbf{z}_i`, where :math:`i` is the position of the variable vector :math:`\mathbf{x}_i`
+      in the entry *variables* and the position of the objective vector :math:`\mathbf{z}_i` in the entry
+      *objectives*.
+
+    **Example request (Analytical problem)**
+
+    Here we define a problem with two variables and three objectives as follows:
+
+    .. math::
+
+      &\text{min}\,f_1(x, y, z) &= x + y \\
+      &\text{max}\,f_2(x, y, z) &= x - z \\
+      &\text{min}\,f_3(x, y, z) &= x + y +z \\
+      &&\text{s.t.}\, x, y, z \in [-10, 10]
+
+    .. sourcecode:: http
+
+      POST /problem/create HTTP/1.1
+      Host: example.com
+      Accept: application/json
+
+      {
+        "problem_type": "Analytical",
+        "name": "Analytical problem",
+        "objective_functions": ["x+y", "x-z", "z+y+x"],
+        "objective_names": ["f1", "f2", "f3"],
+        "variables": ["x", "y", "z"],
+        "variable_initial_values": [0, 0, 0],
+        "variable_bounds": [[-10, 10], [-10, 10], [-10, 10]],
+        "variable_names": ["x", "y", "z"],
+        "ideal": [10, 20, 30],
+        "nadir": [-10, -20, -30],
+        "minimize": [1, -1, 1],
+      }
+
+    .. note::
+
+      The *variable_names* must each be found in the expressions contained in
+      *objective_functions*.  Currently only simple expressions with single
+      character variables and basic artihmetic operators (+, -, /, \*) have been tested.
+      The function expressions are parsed using Sympy.
+
+    .. warning::
+
+      The function expressions are parsed using Sympy.
+
+    **Example response (problem created)**
+
+    .. sourcecode:: http 
+
+      HTTP/1.1 201 Created
+      Vary: Accept
+      Content-Type: application/json
+
+      {
+        "problem_type": "type"
+        "name": "name of the problem",
+        "owner": "username of the user the problem belongs to",
+      }
+
+    **Example response (something goes wrong)**
+
+    .. sourcecode:: http
+
+      HTTP/1.1 406 Not acceptable
+      Vary: Accept
+      Content-Type: application/json
+
+      {
+        "message": "Informative message telling what went wrong.",
+      }
+
+    :reqheader Authorization: A JWT access token. Example ``Bearer <access token>``
+    
+    :>json string problem_type: A string with the name of the problem type being defined.
+    :>json string name: The name of the problem.
+    :>json array objective_functions: (**only for analytical problems**) an array of string expressions representing objective functions.
+    :>json array objective_names: An array of strings with the names on individual objectives. 
+    :>json array variables: **Analytical problems**: an array of single and unique characters representing the variable symbols in *objective_functions*.
+      **Discrete problems**: an array of arrays whre each inner element represents one instance of a variable vector.
+    :>json array variable_initial_values: (**only for analytical problems**) an array of numbers with the initial values for each variable.
+    :>json array variable_bounds: (**only for analytical problems**) an array of tuples with each tuple representing the lower and upper bounds of the variables.
+    :>json array variable_names: An array with the names of the variables.
+    :>json array ideal: (optional) the ideal point of the problem.
+    :>json array nadir: (optional) the nadir point of the problem.
+    :>json array minimize: An array with one element for each objective and where each element is either 1 or -1, where 1 indicates and objective to be minimized and
+      -1 indicates an objective to be maximized. 
+    :>json array objectives: (**only discrete problems**) an array of arrays where each inner element represents one instance of an objective vector.
+
+    :<json string problem_type: The type of the created problem.
+    :<json string name: The name of the created problem.
+    :<json string owner: The username of the owner of the created problem.
+
+    :statuscode 201: Created, problem was successfully created.
+
+    :statuscode 406: Not acceptable, something in the request is not valid. Check the ``message`` entry in the response for additional details.
+    :statuscode 500: Internal server error, something went wrong while parsing the request. Check the ``message`` entry in the response for additional details.
+
 Setup an interactive method for solving multiobjective optimization problems
 ----------------------------------------------------------------------------
+
+Check if an active method exists
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. http:get:: /method/create
 
@@ -184,6 +364,9 @@ Setup an interactive method for solving multiobjective optimization problems
 
   :statuscode 200: ok, a method has been defined
   :statuscode 404: no defined method found
+
+Initialize a new interactive method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. http:post:: /method/create
 
@@ -237,6 +420,9 @@ Setup an interactive method for solving multiobjective optimization problems
 Operate interactive methods for solving multiobjective optimization problems
 ----------------------------------------------------------------------------
 
+Starting a method
+^^^^^^^^^^^^^^^^^
+
 .. http:get:: /method/control
 
     Start iterating a previously defined method. In practice, we call the ``start()`` method of an interactive method in DESDEO
@@ -272,6 +458,9 @@ Operate interactive methods for solving multiobjective optimization problems
     :statuscode 400: the currently active method has already been started
     :statuscode 401: unauthorized, check the access token
     :statuscode 404: no defined method found for the current user
+
+Iterating methods
+^^^^^^^^^^^^^^^^^
 
 .. http:post:: /method/control
 
