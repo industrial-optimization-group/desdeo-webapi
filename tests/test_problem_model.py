@@ -971,7 +971,19 @@ class TestSolutionArchive(TestCase):
         )
         db.session.commit()
 
-    def test_add_solutions(self):
+    def login(self):
+        # login and get access token for test user
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post(
+            "/login", headers={"Content-Type": "application/json"}, data=payload
+        )
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        return access_token
+
+    def test_add_solutions_to_db(self):
         dummy_vars = [[np.random.uniform() for _ in range(11)] for _ in range(10)]
         dummy_objs = [[3 * np.random.uniform() for _ in range(3)] for _ in range(10)]
 
@@ -1005,7 +1017,7 @@ class TestSolutionArchive(TestCase):
         npt.assert_almost_equal(fetch_vars, dummy_vars)
         npt.assert_almost_equal(fetch_objs, dummy_objs)
 
-    def test_add_not_a_dict(self):
+    def test_add_not_a_dict_to_db(self):
         dummy_vars = [[np.random.uniform() for _ in range(11)] for _ in range(10)]
         dummy_objs = [[3 * np.random.uniform() for _ in range(3)] for _ in range(10)]
 
@@ -1024,7 +1036,7 @@ class TestSolutionArchive(TestCase):
 
             assert "A dictionary must be supplied" in str(err.value)
 
-    def test_add_dict_bad_keys(self):
+    def test_add_dict_bad_keys_to_db(self):
         dummy_vars = [[np.random.uniform() for _ in range(11)] for _ in range(10)]
         dummy_objs = [[3 * np.random.uniform() for _ in range(3)] for _ in range(10)]
 
@@ -1061,3 +1073,210 @@ class TestSolutionArchive(TestCase):
             )
 
             assert "must contain the keys" in str(err.value)
+
+    def test_add_solutions(self):
+        atoken = self.login()
+        problem_id = Problem.query.filter_by(name="test_problem").first().id
+
+        # solutions to add
+        dummy_vars = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs = [
+            list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)
+        ]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": dummy_objs,
+                "variables": dummy_vars,
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # data = json.loads(response.data)
+
+    def test_add_solutions_missing(self):
+        atoken = self.login()
+        problem_id = Problem.query.filter_by(name="test_problem").first().id
+
+        # solutions to add
+        dummy_vars = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs = [
+            list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)
+        ]
+
+        # no objectives
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "variables": dummy_vars,
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 400
+
+        data = json.loads(response.data)
+        assert "objectives" in data["errors"]
+
+        # no variables
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": dummy_objs,
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 400
+
+        data = json.loads(response.data)
+        assert "variables" in data["errors"]
+
+        # no problem id
+        payload = json.dumps(
+            {
+                "objectives": dummy_objs,
+                "variables": dummy_vars,
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 400
+
+        data = json.loads(response.data)
+        assert "problem_id" in data["errors"]
+
+    def test_add_solutions_no_id(self):
+        # add a bunch of problems
+        [self.addProblem() for _ in range(10)]
+
+        atoken = self.login()
+        problem_id = 999
+
+        # solutions to add
+        dummy_vars = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs = [
+            list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)
+        ]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": dummy_objs,
+                "variables": dummy_vars,
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 404
+
+        data = json.loads(response.data)
+        assert str(problem_id) in data["message"]
+
+    def test_add_solutions_existing(self):
+        # add a bunch of problems
+        [self.addProblem() for _ in range(10)]
+
+        atoken = self.login()
+        problem_id = 3
+
+        # solutions to add
+        dummy_vars_1 = [
+            list([np.random.uniform() for _ in range(11)]) for _ in range(3)
+        ]
+        dummy_objs_1 = [
+            list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)
+        ]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_1),
+                "variables": json.dumps(dummy_vars_1),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 201
+
+        # add more
+        dummy_vars_2 = [
+            list([np.random.uniform() for _ in range(11)]) for _ in range(3)
+        ]
+        dummy_objs_2 = [
+            list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)
+        ]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_2),
+                "variables": json.dumps(dummy_vars_2),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 202
+
+        # check the db
+        dict_data = (
+            SolutionArchive.query.filter_by(problem_id=problem_id)
+            .first()
+            .solutions_dict_pickle
+        )
+
+        npt.assert_almost_equal(dict_data["variables"], dummy_vars_1 + dummy_vars_2)
