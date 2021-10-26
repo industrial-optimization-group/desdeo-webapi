@@ -25,7 +25,11 @@ class SolutionArchive(db.Model):
     solutions_dict_pickle = db.Column(db.PickleType(pickler=dill))
 
     @validates("solutions_dict_pickle")
-    def validate_dict(self, key, dict_):
+    def validate_dict(self, _, dict_):
+        if not isinstance(dict_, dict):
+            raise ValueError(
+                f"A dictionary must be supplied to SolutionArchive. Type of data suplied f{type(dict_)}"
+            )
         if "variables" not in dict_ or "objectives" not in dict_:
             raise ValueError(
                 "The dictrionary supplied to SolutionArchive must contain the keys 'variables' and 'objectives'"
