@@ -1,5 +1,6 @@
 import dill
 from app import db
+from sqlalchemy.orm import validates
 
 # to be able to serialize lambdified expressions returned by SymPy
 # This might break some serializations!
@@ -16,3 +17,17 @@ class Problem(db.Model):
 
     def __repr__(self):
         return f"Problem('{self.name}', '{self.problem_type}', '{self.owner}', '{self.minimize}'')"
+
+
+class SolutionArchive(db.Model):
+    id = db.Column(db.Integer, primary_key=True, unique=True)
+    problem_id = db.Column(db.Integer, db.ForeignKey("problem.id"), nullable=False)
+    solutions_dict_pickle = db.Column(db.PickleType(pickler=dill))
+
+    @validates("solutions_dict_pickle")
+    def validate_dict(self, key, dict_):
+        if "variables" not in dict_ or "objectives" not in dict_:
+            raise ValueError(
+                "The dictrionary supplied to SolutionArchive must contain the keys 'variables' and 'objectives'"
+            )
+        return dict_

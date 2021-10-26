@@ -3,11 +3,12 @@ import os
 
 import numpy as np
 import numpy.testing as npt
+import pandas as pd
 import pytest
 from app import app, db
 from desdeo_problem.problem import DiscreteDataProblem
 from flask_testing import TestCase
-from models.problem_models import Problem
+from models.problem_models import Problem, SolutionArchive
 from models.user_models import UserModel
 
 
@@ -732,3 +733,79 @@ class TestDiscreteProblem(TestCase):
         npt.assert_almost_equal(problem.ideal, ideal_true)
         npt.assert_almost_equal(problem.nadir, nadir_true)
         npt.assert_array_less(problem.ideal, problem.nadir)
+
+
+@pytest.mark.archive
+@pytest.mark.problem
+class TestSolutionArchive(TestCase):
+    SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
+    TESTING = True
+
+    def create_app(self):
+        app.config["SQLALCHEMY_DATABASE_URI"] = self.SQLALCHEMY_DATABASE_URI
+        app.config["TESTING"] = self.TESTING
+        return app
+
+    def setUp(self):
+        db.create_all()
+        self.app = app.test_client()
+
+        db.session.add(UserModel(username="test_user", password=UserModel.generate_hash("pass")))
+        db.session.commit()
+
+        self.addProblem()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+
+    def addProblem(self):
+        path = os.path.dirname(os.path.abspath(__file__))
+        fname = "data/testPF_3f_11x_max.csv"
+        obj_names = [f"f_{i+1}" for i in range(3)]
+        var_names = [f"x_{i+1}" for i in range(11)]
+        df = pd.read_csv(f"{path}/{fname}", delimiter=",")
+        df.iloc[:, 0:3] = -df.iloc[:, 0:3]
+        df.columns = obj_names + var_names
+
+        fs = df.to_numpy()[:, 0:3]
+        ideal = np.min(fs, axis=1)
+        nadir = np.max(fs, axis=1)
+
+        problem = DiscreteDataProblem(df, var_names, obj_names, ideal, nadir)
+        user_id = UserModel.query.filter_by(username="test_user").first().id
+
+        db.session.add(
+            Problem(
+                name="test_problem",
+                problem_type="Discrete",
+                problem_pickle=problem,
+                user_id=user_id,
+                minimize="[1, 1, 1]",
+            )
+        )
+        db.session.commit()
+
+    def test_add_solutions(self):
+        dummy_vars = [[np.random.uniform() for _ in range(11)] for _ in range(10)]
+        dummy_objs = [[3 * np.random.uniform() for _ in range(3)] for _ in range(10)]
+
+        dict_data = {"variables": np.array(dummy_vars), "objectives": np.array(dummy_objs)}
+
+        # get problem id
+        problem_id = Problem.query.filter_by(name="test_problem").first().id
+
+        # add solutions to archive
+        db.session.add(SolutionArchive(problem_id=problem_id, solutions_dict_pickle=dict_data))
+
+        db.session.commit()
+
+        # check the db entry
+        fetched_dict = SolutionArchive.query.filter_by(problem_id=problem_id).first().solutions_dict_pickle
+
+        print(fetched_dict)
+
+        fetch_vars = fetched_dict["variables"]
+        fetch_objs = fetched_dict["objectives"]
+
+        npt.assert_almost_equal(fetch_vars, dummy_vars)
