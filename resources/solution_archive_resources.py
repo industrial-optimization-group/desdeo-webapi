@@ -27,6 +27,13 @@ archive_parser_add.add_argument(
     help="'objectives' required.",
     required=True,
 )
+archive_parser_add.add_argument(
+    "append",
+    type=bool,
+    help="Whether to append the supplied solutions to the existing archive. Defaults to true",
+    default=True,
+    required=False,
+)
 
 # For GET
 archive_parser_get = reqparse.RequestParser()
@@ -80,17 +87,22 @@ class Archive(Resource):
             msg = f"Created new archive for problem with id {problem_id} and added solutions."
             return {"message": msg}, 201
         else:
-            # add supplied solutoins to existing archive
-            old_solutions = deepcopy(archive_query.solutions_dict_pickle)
-            old_solutions["variables"] += variables
-            old_solutions["objectives"] += objectives
+            if data["append"]:
+                # add supplied solutions to existing archive
+                solutions = deepcopy(archive_query.solutions_dict_pickle)
+                solutions["variables"] += variables
+                solutions["objectives"] += objectives
+                msg = f"Appended solutions to existing archive for problem with id f{problem_id}"
+            else:
+                # add only new, delete old
+                solutions = {"variables": variables, "objectives": objectives}
+                msg = f"Replaced solutions in existing archive for problem with id f{problem_id}"
 
             # need to make deepcopy to have a new mem addres so that sqlalchemy updates the pickle
             # TODO: use a Mutable column
-            archive_query.solutions_dict_pickle = old_solutions
+            archive_query.solutions_dict_pickle = solutions
             db.session.commit()
 
-            msg = f"Added solutions to existing archive for problem with id f{problem_id}"
             return {"message": msg}, 202
 
     @jwt_required()

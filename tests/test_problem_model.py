@@ -1326,3 +1326,156 @@ class TestSolutionArchive(TestCase):
         assert response.status_code == 404
         data = json.loads(response.data)
         assert f"No problem with id {problem_id}" in data["message"]
+
+    def test_no_append_add(self):
+        # add a bunch of problems
+        [self.addProblem() for _ in range(10)]
+
+        atoken = self.login()
+        problem_id = 3
+
+        # solutions to add
+        dummy_vars_1 = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs_1 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_1),
+                "variables": json.dumps(dummy_vars_1),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 201
+
+        # add more
+        dummy_vars_2 = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs_2 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_2),
+                "variables": json.dumps(dummy_vars_2),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 202
+
+        # check solutions
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+            }
+        )
+
+        response = self.app.get(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        npt.assert_almost_equal(data["variables"], dummy_vars_1 + dummy_vars_2)
+        npt.assert_almost_equal(data["objectives"], dummy_objs_1 + dummy_objs_2)
+
+        # replace with new
+        dummy_vars_new = [list([np.random.uniform() for _ in range(11)]) for _ in range(10)]
+        dummy_objs_new = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(10)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_new),
+                "variables": json.dumps(dummy_vars_new),
+                "append": False,
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 202
+
+        response = self.app.get(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        npt.assert_almost_equal(data["variables"], dummy_vars_new)
+        npt.assert_almost_equal(data["objectives"], dummy_objs_new)
+
+    def test_no_append_add_no_existing(self):
+        atoken = self.login()
+        problem_id = 1
+
+        # solutions to add
+        dummy_vars_1 = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs_1 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_1),
+                "variables": json.dumps(dummy_vars_1),
+                "append": False,
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 201
+
+        response = self.app.get(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        npt.assert_almost_equal(data["variables"], dummy_vars_1)
+        npt.assert_almost_equal(data["objectives"], dummy_objs_1)
