@@ -329,6 +329,126 @@ Create a new problem
     :statuscode 406: Not acceptable, something in the request is not valid. Check the ``message`` entry in the response for additional details.
     :statuscode 500: Internal server error, something went wrong while parsing the request. Check the ``message`` entry in the response for additional details.
 
+Fetch solutions from an archive
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Solutions related to defined problems can be saved and fetched from the
+database. Currently, only a single archive of solutions can exists for each
+problem.
+
+.. http:get:: /archive
+
+  Fetch problems from the archive for a specific problem. Example with
+  a problem with 3 variables and 2 objectives.
+  
+  **Exmaple request**
+
+  .. sourcecode:: http
+
+    GET /archive HTTP/1.1
+    Host: example.com
+    Accept: application/json
+
+    {
+      "problem_id": 1,
+    }
+  
+  **Example response**
+
+  .. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    Vary: Accept
+    Content-Type: application/json
+
+    {
+      "variables": [[1.1, 2.2, 3.3], [1.2, 3.1, 2.2], [0.4, 1.2, 1.7]],
+      "objectives": [[0.5, 0.7], [0.3, 0.8], [0.9, 0.1]],
+    }
+  
+  :reqheader Authorization: A JWT access token. Example ``Bearer <access token>``
+
+  :<json number problem_id: The id of the problem which solutions should be fetched.
+
+  :>json array variables: An array of arrays with variable vectors.
+  :>json array objectives: An array of array with objective vectors.
+
+  .. note::
+
+    The variable vectors and objective vectors are matched by index. In other
+    words, evaluating a variable vector at position ``i`` in ``variables`` will result in an
+    objective vector at position ``i`` in ``objectives``.
+
+  :statuscode 200: ok, solutions returned as requested.
+  :statuscode 404: not found, either no problem with the specified id
+    exists for the current user or the archive is empty.
+    
+Add solutions to an archive
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Add solutions to an archive for a specific problem. Example for problem
+with 3 variables and 2 objectives.
+
+.. http:post:: /archive
+
+  **Example request**
+
+  .. sourcecode:: http
+
+    POST /archive HTTP/1.1
+    Host: example.com
+    Accept: application/json
+
+    {
+      "problem_id": 1,
+      "variables": [[1.1, 2.2, 3.3], [1.2, 3.1, 2.2], [0.4, 1.2, 1.7]],
+      "objectives": [[0.5, 0.7], [0.3, 0.8], [0.9, 0.1]],
+      "append": true,
+    }
+
+  **Example response**
+
+  .. sourcecode:: http
+
+    HTTP/1.1 201 OK
+    Vary: Accept
+    Content-Type: application/json
+
+    {
+      "message": "Created new archive for problem with id 1 and added solutions.",
+    }
+
+  :reqheader Authorization: A JWT access token. Example ``Bearer <access token>``
+
+  :<json number problem_id: The id of the problem which solutions should be fetched.
+  :<json array variables: An array of arrays with variable vectors.
+  :<json array objectives: An array of array with objective vectors.
+  :<json boolean append: Whether to append the solution to an existing archive or
+    change the content of the archive to the sent solutions.
+
+  .. note::
+
+    The variable vectors and objective vectors are matched by index. In other
+    words, evaluating a variable vector at position ``i`` in ``variables`` will result in an
+    objective vector at position ``i`` in ``objectives``. Therefore, the number variable
+    and objective vectors should match.
+
+  .. warning::
+
+    Setting ``append`` to ``false`` will result in the existing archive to be wiped and
+    replaced by the solutions sent in the request! If the solutions are to be *added* to the
+    archive, ``append`` should be set to ``true``.
+
+  :>json string message: A message with additional details.
+
+  :statuscode 201: created, a new archive was created and solutions were added to it.
+  :statuscode 202: accepted, the solutions were either appended to an existing archive
+    the old archive was replaced by the new solution. Check ``message`` for additional details.
+  :statuscode 400: bad request, the number of variable vectors does not match with
+    the number of objective vectors.
+  :statuscode 404: not found, the problem with id ``problem_id`` was not found.
+
+
 Setup an interactive method for solving multiobjective optimization problems
 ----------------------------------------------------------------------------
 
