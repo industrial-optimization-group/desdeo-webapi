@@ -2,7 +2,12 @@ from copy import deepcopy
 
 import simplejson as json
 from app import db
-from desdeo_mcdm.interactive import NIMBUS, NautilusNavigator, NautilusNavigatorRequest, ReferencePointMethod
+from desdeo_mcdm.interactive import (
+    NIMBUS,
+    NautilusNavigator,
+    NautilusNavigatorRequest,
+    ReferencePointMethod,
+)
 from desdeo_problem.problem.Problem import DiscreteDataProblem
 from desdeo_emo.EAs import RVEA
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -19,7 +24,7 @@ available_methods = {
     "reference_point_method_alt": ReferencePointMethod,  # for testing purposes only!
     "synchronous_nimbus": NIMBUS,
     "nautilus_navigator": NautilusNavigator,
-    "rvea": RVEA
+    "rvea": RVEA,
 }
 
 method_create_parser = reqparse.RequestParser()
@@ -32,7 +37,9 @@ method_create_parser.add_argument(
 method_create_parser.add_argument(
     "method",
     type=str,
-    help=(f"Specify which method to use. Available methods are: {list(available_methods.keys())}"),
+    help=(
+        f"Specify which method to use. Available methods are: {list(available_methods.keys())}"
+    ),
     required=True,
 )
 
@@ -43,8 +50,15 @@ method_control_parser.add_argument(
     help="The response to continue iterating the method",
     required=True,
 )
-method_control_parser.add_argument("stop", type=bool, help="Stop and get solution?", default=False)
-method_control_parser.add_argument("preference_type", type=int, help="The preference type chosen. Indexing starts at 0, -1 indicates no preference type has been chosen.", default=None)
+method_control_parser.add_argument(
+    "stop", type=bool, help="Stop and get solution?", default=False
+)
+method_control_parser.add_argument(
+    "preference_type",
+    type=int,
+    help="The preference type chosen. Indexing starts at 0, -1 indicates no preference type has been chosen.",
+    default=None,
+)
 
 
 class MethodCreate(Resource):
@@ -69,9 +83,13 @@ class MethodCreate(Resource):
 
         try:
             current_user = get_jwt_identity()
-            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+            current_user_id = (
+                UserModel.query.filter_by(username=current_user).first().id
+            )
 
-            query = Problem.query.filter_by(user_id=current_user_id, id=problem_id).first()
+            query = Problem.query.filter_by(
+                user_id=current_user_id, id=problem_id
+            ).first()
             problem = query.problem_pickle
             problem_minimize = query.minimize
 
@@ -104,7 +122,12 @@ class MethodCreate(Resource):
         elif method_name == "nautilus_navigator":
             if query.problem_type == "Discrete":
                 problem: DiscreteDataProblem
-                method = NautilusNavigator(problem.objectives, problem.ideal, problem.nadir)
+                method = NautilusNavigator(
+                    problem.objectives,
+                    problem.ideal,
+                    problem.nadir,
+                    problem.decision_variables,
+                )
             else:
                 # not discrete problem
                 message = "Currently NAUTILUS Navigator supports only the solving of discrete problem."
@@ -118,7 +141,9 @@ class MethodCreate(Resource):
                 return {"message": message}, 406
         else:
             # internal error
-            return {"message": f"For some reason could not initialize method {method_name}"}, 500
+            return {
+                "message": f"For some reason could not initialize method {method_name}"
+            }, 500
 
         # add method to database, but keep only one method at any given time
         # if method already exists, delete it
@@ -175,11 +200,20 @@ class MethodControl(Resource):
         # We dump the data here temporarily because the data must be encoded using a custom encoder to be first parsed
         # into valid JSON, then we load it again before returning.
         # ignore_nan will result in np.nan to be converted to valid null in JSON
-        if isinstance(method, RVEA): # EA methods handle a bit differently, multiple requests to be handled
-            contents = [json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request]
+        if isinstance(
+            method, RVEA
+        ):  # EA methods handle a bit differently, multiple requests to be handled
+            contents = [
+                json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True)
+                for r in request
+            ]
             response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)
-            ea_individuals = json.dumps(method.population.individuals, cls=NumpyEncoder, ignore_nan=True)
-            ea_objectives = json.dumps(method.population.objectives, cls=NumpyEncoder, ignore_nan=True)
+            ea_individuals = json.dumps(
+                method.population.individuals, cls=NumpyEncoder, ignore_nan=True
+            )
+            ea_objectives = json.dumps(
+                method.population.objectives, cls=NumpyEncoder, ignore_nan=True
+            )
         else:
             response = json.dumps(request.content, cls=NumpyEncoder, ignore_nan=True)
 
@@ -196,7 +230,12 @@ class MethodControl(Resource):
             ## EA METHOD
             # Due to how EAs handle preference types, we need to also ask which
             # preference type has been selected.
-            return {"response": json.loads(response), "preference_type": -1, "individuals": json.loads(ea_individuals), "objectives": json.loads(ea_objectives)}, 200
+            return {
+                "response": json.loads(response),
+                "preference_type": -1,
+                "individuals": json.loads(ea_individuals),
+                "objectives": json.loads(ea_objectives),
+            }, 200
         else:
             ## MCDM method
             # In MCDM methods, preferences are handles in a monolithic fashion (i.e., always one preference object
@@ -230,21 +269,26 @@ class MethodControl(Resource):
         # TODO: use a Mutable column
         method = deepcopy(method_query.method_pickle)
 
-        if isinstance(method, RVEA):  # EA methods (RVEA for now) require that a preference type is chosen.
+        if isinstance(
+            method, RVEA
+        ):  # EA methods (RVEA for now) require that a preference type is chosen.
             if data["preference_type"] < -1:
                 # preference type not specified
                 return {
                     "message": (
-                    "When using evolutionary methods, the entry in the JSON response "
-                    "'preference_type' must be either positive, or -1 to indicate termination."
+                        "When using evolutionary methods, the entry in the JSON response "
+                        "'preference_type' must be either positive, or -1 to indicate termination."
                     )
                 }, 400
             elif data["preference_type"] == -1:
                 # do non-dominated sorting and return
                 ea_individuals, ea_objectives = method.end()
-                response = json.dumps({"individuals": ea_individuals, "objectives": ea_objectives}, cls=NumpyEncoder, ignore_nan=True)
+                response = json.dumps(
+                    {"individuals": ea_individuals, "objectives": ea_objectives},
+                    cls=NumpyEncoder,
+                    ignore_nan=True,
+                )
                 return json.loads(response), 200
-
 
         last_request = method_query.last_request
 
@@ -252,7 +296,10 @@ class MethodControl(Resource):
         user_response = numpify_dict_items(user_response_raw)
 
         try:
-            if isinstance(method, NautilusNavigator) and user_response["go_to_previous"]:
+            if (
+                isinstance(method, NautilusNavigator)
+                and user_response["go_to_previous"]
+            ):
                 # for navigation methods, we need to copy the whole response as the contents of the request when going back
                 # since historic information is expected in the contents, but is contained in the response.
                 # TODO this is stupid, fix NautilusNavigator to expect these fields in the response instead...
@@ -293,7 +340,9 @@ class MethodControl(Resource):
                     if preference_type == 2:
                         # expects pandas dataframe
                         columns = last_request.content["dimensions_data"]
-                        last_request.response = pd.DataFrame(np_preference, columns=columns.columns)
+                        last_request.response = pd.DataFrame(
+                            np_preference, columns=columns.columns
+                        )
                     else:
                         # preference_type 4
                         # expects numpy
@@ -310,7 +359,9 @@ class MethodControl(Resource):
                 last_request.response = user_response
 
             new_request = method.iterate(last_request)
-            if isinstance(new_request, tuple):  # For methods that return mutliple object from an iterate call (e.g., NIMBUS (for now) and EA methods)
+            if isinstance(
+                new_request, tuple
+            ):  # For methods that return mutliple object from an iterate call (e.g., NIMBUS (for now) and EA methods)
                 new_request = new_request[0]
 
             method_query.method_pickle = method
@@ -320,7 +371,9 @@ class MethodControl(Resource):
         except Exception as e:
             print(f"DEBUG: {e}")
             # error, could not iterate, internal server error
-            last_request_dump = json.dumps(last_request.content, cls=NumpyEncoder, ignore_nan=True)
+            last_request_dump = json.dumps(
+                last_request.content, cls=NumpyEncoder, ignore_nan=True
+            )
             return {
                 "message": "Could not iterate the method with the given response",
                 "last_request": last_request_dump,
@@ -328,18 +381,34 @@ class MethodControl(Resource):
 
         # we dump the response first so that we can have it encoded into valid JSON using a custom encoder
         # ignore_nan=True will ensure np.nan is coverted to valid JSON value 'null'.
-        if isinstance(method, RVEA): # EA methods handle a bit differently, multiple requests to be handled
-            contents = [json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in new_request]
+        if isinstance(
+            method, RVEA
+        ):  # EA methods handle a bit differently, multiple requests to be handled
+            contents = [
+                json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True)
+                for r in new_request
+            ]
             response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)
-            ea_individuals = json.dumps(method.population.individuals, cls=NumpyEncoder, ignore_nan=True)
-            ea_objectives = json.dumps(method.population.objectives, cls=NumpyEncoder, ignore_nan=True)
+            ea_individuals = json.dumps(
+                method.population.individuals, cls=NumpyEncoder, ignore_nan=True
+            )
+            ea_objectives = json.dumps(
+                method.population.objectives, cls=NumpyEncoder, ignore_nan=True
+            )
 
             # ok
             # We will deserialize the response into a Python dict here because flask-restx will automatically
             # serialize the response into valid JSON.
-            return {"response": json.loads(response), "preference_type": -1, "individuals": json.loads(ea_individuals), "objectives": json.loads(ea_objectives)}, 200
+            return {
+                "response": json.loads(response),
+                "preference_type": -1,
+                "individuals": json.loads(ea_individuals),
+                "objectives": json.loads(ea_objectives),
+            }, 200
         else:
-            response = json.dumps(new_request.content, cls=NumpyEncoder, ignore_nan=True)
+            response = json.dumps(
+                new_request.content, cls=NumpyEncoder, ignore_nan=True
+            )
 
             # ok
             # We will deserialize the response into a Python dict here because flask-restx will automatically
