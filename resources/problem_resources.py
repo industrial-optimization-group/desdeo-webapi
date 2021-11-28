@@ -2,7 +2,15 @@ import numpy as np
 import pandas as pd
 import simplejson as json
 from app import db
-from desdeo_problem import DiscreteDataProblem, MOProblem, Variable, _ScalarObjective
+from desdeo_problem import (
+    DiscreteDataProblem,
+    MOProblem,
+    Variable,
+    _ScalarObjective,
+    classificationPISProblem,
+)
+from desdeo_tools.maps import classificationPIS
+from desdeo_tools.scalarization import AUG_GUESS_GLIDE, AUG_STOM_GLIDE
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.problem_models import Problem
@@ -10,7 +18,7 @@ from models.user_models import UserModel
 from utilities.expression_parser import numpify_expressions
 
 # The vailable problem types
-available_problem_types = ["Analytical", "Discrete"]
+available_problem_types = ["Analytical", "Discrete", "Classification PIS"]
 supported_analytical_problem_operators = ["+", "-", "*", "/"]
 
 # Problem creation base parser
@@ -54,21 +62,27 @@ problem_analytical_parser.add_argument(
 problem_analytical_parser.add_argument(
     "variables",
     type=str,
-    help=("If specifying an analytical problem, please define the variable symbols as a list of strings."),
+    help=(
+        "If specifying an analytical problem, please define the variable symbols as a list of strings."
+    ),
     required=True,
     action="append",
 )
 problem_analytical_parser.add_argument(
     "variable_names",
     type=str,
-    help=("If specifying an analytical problem, please define the variable variable as a list of strings."),
+    help=(
+        "If specifying an analytical problem, please define the variable variable as a list of strings."
+    ),
     required=True,
     action="append",
 )
 problem_analytical_parser.add_argument(
     "variable_initial_values",
     type=str,
-    help=("If specifying an analytical problem, please define the variable initial values as a list of floats."),
+    help=(
+        "If specifying an analytical problem, please define the variable initial values as a list of floats."
+    ),
     required=True,
     action="append",
 )
@@ -111,7 +125,11 @@ problem_analytical_parser.add_argument(
 problem_discrete_parser = problem_analytical_parser.copy()
 [
     problem_discrete_parser.remove_argument(arg_name)
-    for arg_name in ["objective_functions", "variable_initial_values", "variable_bounds"]
+    for arg_name in [
+        "objective_functions",
+        "variable_initial_values",
+        "variable_bounds",
+    ]
 ]
 problem_discrete_parser.add_argument(
     "objectives",
@@ -147,7 +165,11 @@ class ProblemAccess(Resource):
 
             response = {
                 "problems": [
-                    {"id": problem.id, "name": problem.name, "problem_type": problem.problem_type}
+                    {
+                        "id": problem.id,
+                        "name": problem.name,
+                        "problem_type": problem.problem_type,
+                    }
                     for problem in problems
                 ]
             }
@@ -172,7 +194,9 @@ class ProblemAccess(Resource):
 
         data = problem_access_parser.parse_args()
 
-        problem_query = Problem.query.filter_by(user_id=current_user_id, id=data["problem_id"]).first()
+        problem_query = Problem.query.filter_by(
+            user_id=current_user_id, id=data["problem_id"]
+        ).first()
 
         if not problem_query:
             # problem not found, 404
@@ -203,7 +227,9 @@ class ProblemAccess(Resource):
                 n_objectives = problem_pickle.n_of_objectives
             else:
                 # problem type not found
-                return {"message": f"Problem of type {type(problem_pickle)} not found"}, 404
+                return {
+                    "message": f"Problem of type {type(problem_pickle)} not found"
+                }, 404
 
             response = {
                 "objective_names": objective_names,
@@ -254,9 +280,11 @@ class ProblemCreation(Resource):
 
         if data["problem_type"] not in available_problem_types:
             # check that problem type is valid, if not, return 406
-            return {"message": f"The problem type must be one of {available_problem_types}"}, 406
+            return {
+                "message": f"The problem type must be one of {available_problem_types}"
+            }, 406
 
-        if data["problem_type"] == "Analytical":
+        if data["problem_type"] == "Analytical" or "Classification PIS":
             # handle analytical problem case
             data = problem_analytical_parser.parse_args()
             if data["objective_functions"] is None:
@@ -266,7 +294,9 @@ class ProblemCreation(Resource):
                 }, 406
             if data["objective_names"] is None:
                 # if no names given, go with default names
-                objective_names = [f"f_{i+1}" for i in range(len(data["objective_functions"]))]
+                objective_names = [
+                    f"f_{i+1}" for i in range(len(data["objective_functions"]))
+                ]
 
             elif len(data["objective_names"]) != len(data["objective_functions"]):
                 msg = "Bad number of objective function names given."
@@ -276,7 +306,9 @@ class ProblemCreation(Resource):
                 objective_names = data["objective_names"]
 
             if data["variables"] is None:
-                return {"message": "When specifying an analytical problem, variable names must be specified"}, 406
+                return {
+                    "message": "When specifying an analytical problem, variable names must be specified"
+                }, 406
 
             if data["variable_names"] is None:
                 variable_names = [f"var_{i+1}" for i in range(len(data["variables"]))]
@@ -288,14 +320,18 @@ class ProblemCreation(Resource):
             else:
                 variable_names = data["variable_names"]
 
-            if data["variable_initial_values"] is None or len(data["variable_initial_values"]) != len(
-                data["variables"]
-            ):
+            if data["variable_initial_values"] is None or len(
+                data["variable_initial_values"]
+            ) != len(data["variables"]):
                 msg = "Bad number of initial variable values given"
                 return {"message": msg}, 406
 
             if data["ideal"] is None:
+                if data["problem_type"] == "Classification PIS":
+                    msg = "Ideal point required to create the PIS"
+                    return {"message": msg}, 406
                 ideal = None
+
             elif len(data["ideal"]) != len(data["objective_functions"]):
                 msg = "Ideal point has wrong number of components"
                 return {"message": msg}, 406
@@ -303,6 +339,9 @@ class ProblemCreation(Resource):
                 ideal = np.array(data["ideal"]).astype(float)
 
             if data["nadir"] is None:
+                if data["problem_type"] == "Classification PIS":
+                    msg = "Nadir point required to create the PIS"
+                    return {"message": msg}, 406
                 nadir = None
             elif len(data["nadir"]) != len(data["objective_functions"]):
                 msg = "Nadir point has wrong number of components"
@@ -323,28 +362,66 @@ class ProblemCreation(Resource):
             variables_str = data["variables"]
             variable_bounds_str = data["variable_bounds"]
 
-            if variable_bounds_str is None or len(variable_bounds_str) != len(variables_str):
+            if variable_bounds_str is None or len(variable_bounds_str) != len(
+                variables_str
+            ):
                 return {"message": "Bad number of variable bounds tuples given"}, 406
 
             # convert the bounds and initial values to a numpy array
             variable_bounds = np.array(list(map(json.loads, variable_bounds_str)))
-            variable_initial_values = np.array(data["variable_initial_values"]).astype(float)
+            variable_initial_values = np.array(data["variable_initial_values"]).astype(
+                float
+            )
 
-            objective_evaluators = numpify_expressions(objective_functions_str, variables_str)
+            objective_evaluators = numpify_expressions(
+                objective_functions_str, variables_str
+            )
 
             objectives = [
-                _ScalarObjective(objective_names[i], evaluator) for (i, evaluator) in enumerate(objective_evaluators)
+                _ScalarObjective(objective_names[i], evaluator)
+                for (i, evaluator) in enumerate(objective_evaluators)
             ]
 
             variables = [
-                Variable(variable_names[i], variable_initial_values[i], variable_bounds[i][0], variable_bounds[i][1])
+                Variable(
+                    variable_names[i],
+                    variable_initial_values[i],
+                    variable_bounds[i][0],
+                    variable_bounds[i][1],
+                )
                 for i, x in enumerate(variables_str)
             ]
 
-            problem = MOProblem(objectives, variables, ideal=ideal, nadir=nadir)
+            if data["problem_type"] == "Analytical":
+                problem = MOProblem(objectives, variables, ideal=ideal, nadir=nadir)
+            elif data["problem_type"] == "Classification PIS":
+                PIS = classificationPIS(
+                    scalarizers=[AUG_GUESS_GLIDE, AUG_STOM_GLIDE],
+                    utopian=ideal - 1e-6,
+                    nadir=nadir,
+                )
+                # TODO: GET first preference from problem formulation!
+                first_preference = {
+                    "classifications": ["=", ">=", "<=", ">="],
+                    "current solution": (ideal + nadir) / 2,
+                    "levels": (ideal + nadir) / 2 + [0, 0.1, -0.1, 0.1],
+                }
+                PIS.update_preference(first_preference)
+                problem = classificationPISProblem(
+                    objectives=objectives,
+                    variables=variables,
+                    nadir=nadir,
+                    ideal=ideal - 1e-6,
+                    PIS=PIS,
+                )
+            else:
+                msg = "Wrong problem type"
+                return {"message": msg}, 406
 
             current_user = get_jwt_identity()
-            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+            current_user_id = (
+                UserModel.query.filter_by(username=current_user).first().id
+            )
 
             db.session.add(
                 Problem(
@@ -357,7 +434,11 @@ class ProblemCreation(Resource):
             )
             db.session.commit()
 
-            response = {"problem_type": data["problem_type"], "name": data["name"], "owner": current_user}
+            response = {
+                "problem_type": data["problem_type"],
+                "name": data["name"],
+                "owner": current_user,
+            }
             return response, 201
 
         elif data["problem_type"] == "Discrete":
@@ -391,7 +472,9 @@ class ProblemCreation(Resource):
             objective_names = data["objective_names"]
 
             # check minimize, if given
-            if data["minimize"] is not None and len(data["minimize"]) != len(objective_names):
+            if data["minimize"] is not None and len(data["minimize"]) != len(
+                objective_names
+            ):
                 # minimize given, but has incorrect n of elements
                 message = (
                     f"Number of elements in minimize: {data['minimize']} should match the number of elements in"
@@ -414,7 +497,9 @@ class ProblemCreation(Resource):
             if data["ideal"] is not None and len(data["ideal"]) == len(objective_names):
                 # ideal of proper size given
                 ideal = np.array(data["ideal"]).astype(float)
-            elif data["ideal"] is not None and len(data["ideal"]) != len(objective_names):
+            elif data["ideal"] is not None and len(data["ideal"]) != len(
+                objective_names
+            ):
                 # bad ideal
                 message = "The dimensions of the ideal point do not match with the number of objectives."
                 return {"message": message}, 406
@@ -426,7 +511,9 @@ class ProblemCreation(Resource):
             if data["nadir"] is not None and len(data["nadir"]) == len(objective_names):
                 # nadir of proper size given
                 nadir = np.array(data["nadir"]).astype(float)
-            elif data["nadir"] is not None and len(data["nadir"]) != len(objective_names):
+            elif data["nadir"] is not None and len(data["nadir"]) != len(
+                objective_names
+            ):
                 # bad nadir
                 message = "The dimensions of the nadir point do not match with the number of objectives."
                 return {"message": message}, 406
@@ -454,14 +541,20 @@ class ProblemCreation(Resource):
             """
 
             # Define dataframe
-            df = pd.DataFrame(np.hstack((fs, xs)), columns=objective_names + variable_names)
+            df = pd.DataFrame(
+                np.hstack((fs, xs)), columns=objective_names + variable_names
+            )
 
             # Define problem
-            problem = DiscreteDataProblem(df, variable_names, objective_names, ideal, nadir)
+            problem = DiscreteDataProblem(
+                df, variable_names, objective_names, ideal, nadir
+            )
 
             # Add to DB for current user
             current_user = get_jwt_identity()
-            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+            current_user_id = (
+                UserModel.query.filter_by(username=current_user).first().id
+            )
 
             db.session.add(
                 Problem(
@@ -474,5 +567,9 @@ class ProblemCreation(Resource):
             )
             db.session.commit()
 
-            response = {"problem_type": data["problem_type"], "name": data["name"], "owner": current_user}
+            response = {
+                "problem_type": data["problem_type"],
+                "name": data["name"],
+                "owner": current_user,
+            }
             return response, 201
