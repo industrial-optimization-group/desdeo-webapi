@@ -657,7 +657,7 @@ class TestNautilusNavigator(TestCase):
 
         # iterate till the end (add padding because we already iterate twice)
         responses = [None, None]
-        for _ in range(98):
+        for _ in range(38):
             response = self.app.post(
                 "/method/control",
                 headers={
@@ -674,11 +674,11 @@ class TestNautilusNavigator(TestCase):
 
         content = json.loads(response.data)["response"]
 
-        assert content["step_number"] == 100
+        assert content["step_number"] == 40
         assert content["steps_remaining"] == 1
 
         # take some steps back
-        response = responses[58]
+        response = responses[18]
         response["go_to_previous"] = True
         response["reference_point"] = ref_p
         response["speed"] = 3
@@ -700,8 +700,8 @@ class TestNautilusNavigator(TestCase):
 
         content = json.loads(response.data)["response"]
 
-        assert content["step_number"] == 59
-        assert content["steps_remaining"] == 42
+        assert content["step_number"] == 19
+        assert content["steps_remaining"] == 22
 
     def test_stop_method(self):
         uname = "test_user"
@@ -779,7 +779,7 @@ class TestNautilusNavigator(TestCase):
 
         content = json.loads(response.data)["response"]
 
-        assert content["step_number"] == 100
+        assert content["step_number"] == 40
         assert content["steps_remaining"] == 1
 
         # stop the method

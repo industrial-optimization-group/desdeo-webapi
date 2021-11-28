@@ -128,6 +128,7 @@ class MethodCreate(Resource):
                     problem.nadir,
                     problem.decision_variables,
                 )
+                method._steps_remaining = 40
             else:
                 # not discrete problem
                 message = "Currently NAUTILUS Navigator supports only the solving of discrete problem."

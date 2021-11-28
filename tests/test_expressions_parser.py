@@ -1,8 +1,13 @@
 import unittest
+import pytest
 
 import numpy as np
 import numpy.testing as npt
-from utilities.expression_parser import numpify_dict_items, numpify_expressions, recurse_check_lists_for_element_type
+from utilities.expression_parser import (
+    numpify_dict_items,
+    numpify_expressions,
+    recurse_check_lists_for_element_type,
+)
 
 
 class TestNumpifyExpressions(unittest.TestCase):
@@ -22,6 +27,7 @@ class TestNumpifyExpressions(unittest.TestCase):
         npt.assert_almost_equal(numpified[2](xs), np.array([0, 3, 5, 7, 7]))
 
 
+@pytest.mark.parser
 class TestNumpifyDictItems(unittest.TestCase):
     def test_1d(self):
         d = {"item_1": [10.2, 3.3, -1.2]}
@@ -65,7 +71,10 @@ class TestNumpifyDictItems(unittest.TestCase):
         # not ok
         assert not recurse_check_lists_for_element_type(lst)
 
-        lst = [[[1, 2, 3], [1.1, 2, 3.3], [1, -1, 2]], [[1, 2, 3], [1.1, 2, 3.3], [1, -1, 2]]]
+        lst = [
+            [[1, 2, 3], [1.1, 2, 3.3], [1, -1, 2]],
+            [[1, 2, 3], [1.1, 2, 3.3], [1, -1, 2]],
+        ]
         # ok
         assert recurse_check_lists_for_element_type(lst)
 
@@ -91,14 +100,20 @@ class TestNumpifyDictItems(unittest.TestCase):
         assert new_d == {}
 
         # mixed values dict
-        d = {"item_1": [[10.2, 3.3, -1.2], [-11.1, 12.2, -13.3333]], "item_2": ["I", "am", "a", "teapot"]}
+        d = {
+            "item_1": [[10.2, 3.3, -1.2], [-11.1, 12.2, -13.3333]],
+            "item_2": ["I", "am", "a", "teapot"],
+        }
         new_d = numpify_dict_items(d)
 
         npt.assert_almost_equal(new_d["item_1"], d["item_1"])
         assert new_d["item_2"] == d["item_2"]
 
         # no numerical values dict
-        d = {"item_1": ["I", "am", "a", "teapot"], "item_2": ["I", "am", "also", "a", "teapot"]}
+        d = {
+            "item_1": ["I", "am", "a", "teapot"],
+            "item_2": ["I", "am", "also", "a", "teapot"],
+        }
         new_d = numpify_dict_items(d)
 
         assert new_d["item_1"] == d["item_1"]
@@ -106,7 +121,10 @@ class TestNumpifyDictItems(unittest.TestCase):
 
         # mixed dims dict
         d = {
-            "item_1": [[[1, 2, 3], [1.1, 2, 3.3], [1, -1, 2]], [[1, 2, 3], [1.1, 2, 3.3], [1, -1, 2]]],
+            "item_1": [
+                [[1, 2, 3], [1.1, 2, 3.3], [1, -1, 2]],
+                [[1, 2, 3], [1.1, 2, 3.3], [1, -1, 2]],
+            ],
             "item_2": [[10.2, 3.3, -1.2], [-11.1, 12.2, -13.3333]],
             "item_3": [1, [1.1, 2.2], [2.2, 3.3, 4.4]],
         }
