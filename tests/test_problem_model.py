@@ -3,11 +3,12 @@ import os
 
 import numpy as np
 import numpy.testing as npt
+import pandas as pd
 import pytest
 from app import app, db
 from desdeo_problem.problem import DiscreteDataProblem
 from flask_testing import TestCase
-from models.problem_models import Problem
+from models.problem_models import Problem, SolutionArchive
 from models.user_models import UserModel
 
 
@@ -53,7 +54,10 @@ class TestAnalyticalProblem(TestCase):
         payload = json.dumps(problem_def)
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
             data=payload,
         )
 
@@ -61,7 +65,10 @@ class TestAnalyticalProblem(TestCase):
         payload = json.dumps(problem_def)
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
             data=payload,
         )
 
@@ -69,7 +76,10 @@ class TestAnalyticalProblem(TestCase):
         payload = json.dumps(problem_def)
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
             data=payload,
         )
 
@@ -156,7 +166,10 @@ class TestAnalyticalProblem(TestCase):
         # Missing objective functions
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
             data=payload,
         )
 
@@ -183,7 +196,10 @@ class TestAnalyticalProblem(TestCase):
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
             data=payload,
         )
 
@@ -219,7 +235,10 @@ class TestAnalyticalProblem(TestCase):
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
             data=payload,
         )
 
@@ -267,7 +286,10 @@ class TestAnalyticalProblem(TestCase):
 
         response = self.app.post(
             "/problem/access",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
             data=payload,
         )
 
@@ -279,7 +301,10 @@ class TestAnalyticalProblem(TestCase):
 
         response = self.app.post(
             "/problem/access",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
             data=payload,
         )
 
@@ -334,7 +359,11 @@ class TestDiscreteProblem(TestCase):
 
         return access_token
 
-    def get_xs_and_fs(self, path=os.path.dirname(os.path.abspath(__file__)), fname="data/testPF_3f_11x_max.csv"):
+    def get_xs_and_fs(
+        self,
+        path=os.path.dirname(os.path.abspath(__file__)),
+        fname="data/testPF_3f_11x_max.csv",
+    ):
         pf = np.loadtxt(f"{path}/{fname}", delimiter=",")
         fs = list(map(list, pf[:, 0:3]))
         xs = list(map(list, pf[:, 3:]))
@@ -359,7 +388,10 @@ class TestDiscreteProblem(TestCase):
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -381,13 +413,28 @@ class TestDiscreteProblem(TestCase):
                 "objectives": fs,
                 "objective_names": ["f1", "f2", "f3", "f4"],
                 "variables": xs,
-                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "variable_names": [
+                    "x1",
+                    "x2",
+                    "x3",
+                    "x4",
+                    "x5",
+                    "x6",
+                    "x7",
+                    "x8",
+                    "x9",
+                    "x10",
+                    "x11",
+                ],
             }
         )
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -410,14 +457,29 @@ class TestDiscreteProblem(TestCase):
                 "objectives": fs,
                 "objective_names": ["f1", "f2", "f3"],
                 "variables": xs,
-                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "variable_names": [
+                    "x1",
+                    "x2",
+                    "x3",
+                    "x4",
+                    "x5",
+                    "x6",
+                    "x7",
+                    "x8",
+                    "x9",
+                    "x10",
+                    "x11",
+                ],
                 "ideal": json.dumps([1, 1]),
             }
         )
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -439,7 +501,19 @@ class TestDiscreteProblem(TestCase):
                 "objectives": fs,
                 "objective_names": ["f1", "f2", "f3"],
                 "variables": xs,
-                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "variable_names": [
+                    "x1",
+                    "x2",
+                    "x3",
+                    "x4",
+                    "x5",
+                    "x6",
+                    "x7",
+                    "x8",
+                    "x9",
+                    "x10",
+                    "x11",
+                ],
                 "ideal": [100, 100, 100],
                 "nadir": [-100, -100, -100, -100],
             }
@@ -447,7 +521,10 @@ class TestDiscreteProblem(TestCase):
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -469,7 +546,19 @@ class TestDiscreteProblem(TestCase):
                 "objectives": fs,
                 "objective_names": ["f1", "f2", "f3"],
                 "variables": xs,
-                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "variable_names": [
+                    "x1",
+                    "x2",
+                    "x3",
+                    "x4",
+                    "x5",
+                    "x6",
+                    "x7",
+                    "x8",
+                    "x9",
+                    "x10",
+                    "x11",
+                ],
                 "ideal": [100, 100, 100],
                 "nadir": [100, 10, 1000],
             }
@@ -477,7 +566,10 @@ class TestDiscreteProblem(TestCase):
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -497,7 +589,19 @@ class TestDiscreteProblem(TestCase):
                 "objectives": fs,
                 "objective_names": ["f1", "f2", "f3"],
                 "variables": xs,
-                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "variable_names": [
+                    "x1",
+                    "x2",
+                    "x3",
+                    "x4",
+                    "x5",
+                    "x6",
+                    "x7",
+                    "x8",
+                    "x9",
+                    "x10",
+                    "x11",
+                ],
                 "ideal": [100, 100, 100],
                 "nadir": [1000, 1000, 1000],
                 "minimize": [1, 1],
@@ -506,7 +610,10 @@ class TestDiscreteProblem(TestCase):
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -522,7 +629,19 @@ class TestDiscreteProblem(TestCase):
                 "objectives": fs,
                 "objective_names": ["f1", "f2", "f3"],
                 "variables": xs,
-                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "variable_names": [
+                    "x1",
+                    "x2",
+                    "x3",
+                    "x4",
+                    "x5",
+                    "x6",
+                    "x7",
+                    "x8",
+                    "x9",
+                    "x10",
+                    "x11",
+                ],
                 "ideal": [100, 100, 100],
                 "nadir": [1000, 1000, 1000],
                 "minimize": [1, 5, -1],
@@ -531,7 +650,10 @@ class TestDiscreteProblem(TestCase):
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -576,7 +698,10 @@ class TestDiscreteProblem(TestCase):
         # check that no problems exists for current user
         response = self.app.get(
             "/problem/access",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
         )
 
         assert response.status_code == 200
@@ -589,7 +714,19 @@ class TestDiscreteProblem(TestCase):
         pname = "discrete_data_problem"
         uname = "test_user"
         objective_names = ["f1", "f2", "f3"]
-        variable_names = ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"]
+        variable_names = [
+            "x1",
+            "x2",
+            "x3",
+            "x4",
+            "x5",
+            "x6",
+            "x7",
+            "x8",
+            "x9",
+            "x10",
+            "x11",
+        ]
         ideal = [100, 100, 100]
         nadir = [1000, 1000, 1000]
         minimize = [1, 1, 1]
@@ -610,7 +747,10 @@ class TestDiscreteProblem(TestCase):
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -625,7 +765,10 @@ class TestDiscreteProblem(TestCase):
         # fetch problem and check it
         response = self.app.get(
             "/problem/access",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
         )
 
         assert response.status_code == 200
@@ -649,7 +792,10 @@ class TestDiscreteProblem(TestCase):
 
         response = self.app.post(
             "/problem/access",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -712,13 +858,28 @@ class TestDiscreteProblem(TestCase):
                 "objectives": fs,
                 "objective_names": ["f1", "f2", "f3"],
                 "variables": xs,
-                "variable_names": ["x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11"],
+                "variable_names": [
+                    "x1",
+                    "x2",
+                    "x3",
+                    "x4",
+                    "x5",
+                    "x6",
+                    "x7",
+                    "x8",
+                    "x9",
+                    "x10",
+                    "x11",
+                ],
             }
         )
 
         response = self.app.post(
             "/problem/create",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {atoken}"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
             data=payload,
         )
 
@@ -732,3 +893,589 @@ class TestDiscreteProblem(TestCase):
         npt.assert_almost_equal(problem.ideal, ideal_true)
         npt.assert_almost_equal(problem.nadir, nadir_true)
         npt.assert_array_less(problem.ideal, problem.nadir)
+
+
+@pytest.mark.archive
+@pytest.mark.problem
+class TestSolutionArchive(TestCase):
+    SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
+    TESTING = True
+
+    def create_app(self):
+        app.config["SQLALCHEMY_DATABASE_URI"] = self.SQLALCHEMY_DATABASE_URI
+        app.config["TESTING"] = self.TESTING
+        return app
+
+    def setUp(self):
+        db.create_all()
+        self.app = app.test_client()
+
+        db.session.add(UserModel(username="test_user", password=UserModel.generate_hash("pass")))
+        db.session.commit()
+
+        self.addProblem()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+
+    def addProblem(self):
+        path = os.path.dirname(os.path.abspath(__file__))
+        fname = "data/testPF_3f_11x_max.csv"
+        obj_names = [f"f_{i+1}" for i in range(3)]
+        var_names = [f"x_{i+1}" for i in range(11)]
+        df = pd.read_csv(f"{path}/{fname}", delimiter=",")
+        df.iloc[:, 0:3] = -df.iloc[:, 0:3]
+        df.columns = obj_names + var_names
+
+        fs = df.to_numpy()[:, 0:3]
+        ideal = np.min(fs, axis=1)
+        nadir = np.max(fs, axis=1)
+
+        problem = DiscreteDataProblem(df, var_names, obj_names, ideal, nadir)
+        user_id = UserModel.query.filter_by(username="test_user").first().id
+
+        db.session.add(
+            Problem(
+                name="test_problem",
+                problem_type="Discrete",
+                problem_pickle=problem,
+                user_id=user_id,
+                minimize="[1, 1, 1]",
+            )
+        )
+        db.session.commit()
+
+    def login(self):
+        # login and get access token for test user
+        payload = json.dumps({"username": "test_user", "password": "pass"})
+        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        return access_token
+
+    def test_add_solutions_to_db(self):
+        dummy_vars = [[np.random.uniform() for _ in range(11)] for _ in range(10)]
+        dummy_objs = [[3 * np.random.uniform() for _ in range(3)] for _ in range(10)]
+
+        dict_data = {
+            "variables": np.array(dummy_vars),
+            "objectives": np.array(dummy_objs),
+        }
+
+        # get problem id
+        problem_id = Problem.query.filter_by(name="test_problem").first().id
+
+        # add solutions to archive
+        db.session.add(SolutionArchive(problem_id=problem_id, solutions_dict_pickle=dict_data))
+
+        db.session.commit()
+
+        # check the db entry
+        fetched_dict = SolutionArchive.query.filter_by(problem_id=problem_id).first().solutions_dict_pickle
+
+        print(fetched_dict)
+
+        fetch_vars = fetched_dict["variables"]
+        fetch_objs = fetched_dict["objectives"]
+
+        npt.assert_almost_equal(fetch_vars, dummy_vars)
+        npt.assert_almost_equal(fetch_objs, dummy_objs)
+
+    def test_add_not_a_dict_to_db(self):
+        dummy_vars = [[np.random.uniform() for _ in range(11)] for _ in range(10)]
+        dummy_objs = [[3 * np.random.uniform() for _ in range(3)] for _ in range(10)]
+
+        not_a_dict_data = [np.array(dummy_vars), np.array(dummy_objs)]
+
+        # get problem id
+        problem_id = Problem.query.filter_by(name="test_problem").first().id
+
+        # add solutions to archive
+        with pytest.raises(ValueError) as err:
+            db.session.add(SolutionArchive(problem_id=problem_id, solutions_dict_pickle=not_a_dict_data))
+
+            assert "A dictionary must be supplied" in str(err.value)
+
+    def test_add_dict_bad_keys_to_db(self):
+        dummy_vars = [[np.random.uniform() for _ in range(11)] for _ in range(10)]
+        dummy_objs = [[3 * np.random.uniform() for _ in range(3)] for _ in range(10)]
+
+        dict_data_1 = {
+            "variables": np.array(dummy_vars),
+            "objectives_bad": np.array(dummy_objs),
+        }
+
+        # get problem id
+        problem_id = Problem.query.filter_by(name="test_problem").first().id
+
+        with pytest.raises(ValueError) as err:
+            db.session.add(SolutionArchive(problem_id=problem_id, solutions_dict_pickle=dict_data_1))
+
+            assert "must contain the keys" in str(err.value)
+
+        dict_data_2 = {
+            "variables_bad": np.array(dummy_vars),
+            "objectives": np.array(dummy_objs),
+        }
+
+        # get problem id
+        problem_id = Problem.query.filter_by(name="test_problem").first().id
+
+        with pytest.raises(ValueError) as err:
+            db.session.add(SolutionArchive(problem_id=problem_id, solutions_dict_pickle=dict_data_2))
+
+            assert "must contain the keys" in str(err.value)
+
+    def test_add_solutions(self):
+        atoken = self.login()
+        problem_id = Problem.query.filter_by(name="test_problem").first().id
+
+        # solutions to add
+        dummy_vars = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs),
+                "variables": json.dumps(dummy_vars),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # data = json.loads(response.data)
+
+    def test_add_solutions_missing(self):
+        atoken = self.login()
+        problem_id = Problem.query.filter_by(name="test_problem").first().id
+
+        # solutions to add
+        dummy_vars = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        # no objectives
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "variables": json.dumps(dummy_vars),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 400
+
+        data = json.loads(response.data)
+        assert "objectives" in data["errors"]
+
+        # no variables
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 400
+
+        data = json.loads(response.data)
+        assert "variables" in data["errors"]
+
+        # no problem id
+        payload = json.dumps(
+            {
+                "objectives": json.dumps(dummy_objs),
+                "variables": json.dumps(dummy_vars),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 400
+
+        data = json.loads(response.data)
+        assert "problem_id" in data["errors"]
+
+    def test_add_solutions_no_id(self):
+        # add a bunch of problems
+        [self.addProblem() for _ in range(10)]
+
+        atoken = self.login()
+        problem_id = 999
+
+        # solutions to add
+        dummy_vars = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs),
+                "variables": json.dumps(dummy_vars),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 404
+
+        data = json.loads(response.data)
+        assert str(problem_id) in data["message"]
+
+    def test_add_solutions_existing(self):
+        # add a bunch of problems
+        [self.addProblem() for _ in range(10)]
+
+        atoken = self.login()
+        problem_id = 3
+
+        # solutions to add
+        dummy_vars_1 = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs_1 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_1),
+                "variables": json.dumps(dummy_vars_1),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 201
+
+        # add more
+        dummy_vars_2 = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs_2 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_2),
+                "variables": json.dumps(dummy_vars_2),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 202
+
+        # check the db
+        dict_data = SolutionArchive.query.filter_by(problem_id=problem_id).first().solutions_dict_pickle
+
+        npt.assert_almost_equal(dict_data["variables"], dummy_vars_1 + dummy_vars_2)
+
+    def test_get_solutions(self):
+        # add a bunch of problems
+        [self.addProblem() for _ in range(3)]
+
+        atoken = self.login()
+        problem_id = 2
+
+        # solutions to add
+        dummy_vars_1 = [list([np.random.uniform() for _ in range(11)]) for _ in range(5)]
+        dummy_objs_1 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(5)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_1),
+                "variables": json.dumps(dummy_vars_1),
+            }
+        )
+
+        # add solutions through the API
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 201
+
+        # more to add
+        dummy_vars_2 = [list([np.random.uniform() for _ in range(11)]) for _ in range(5)]
+        dummy_objs_2 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(5)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_2),
+                "variables": json.dumps(dummy_vars_2),
+            }
+        )
+
+        # add more solutions through the API
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 202
+
+        # fetch solutions
+        payload = json.dumps({"problem_id": problem_id})
+        response = self.app.get(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        npt.assert_almost_equal(data["variables"], dummy_vars_1 + dummy_vars_2)
+        npt.assert_almost_equal(data["objectives"], dummy_objs_1 + dummy_objs_2)
+
+    def test_get_solutions_empty(self):
+        # add a bunch of problems
+        [self.addProblem() for _ in range(3)]
+
+        atoken = self.login()
+        problem_id = 3
+
+        # fetch solutions
+        payload = json.dumps({"problem_id": problem_id})
+        response = self.app.get(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 404
+        data = json.loads(response.data)
+        assert f"No archive found for problem with id {problem_id}" in data["message"]
+
+    def test_get_solutions_no_problem(self):
+        atoken = self.login()
+        problem_id = 2
+
+        # fetch solutions
+        payload = json.dumps({"problem_id": problem_id})
+        response = self.app.get(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 404
+        data = json.loads(response.data)
+        assert f"No problem with id {problem_id}" in data["message"]
+
+    def test_no_append_add(self):
+        # add a bunch of problems
+        [self.addProblem() for _ in range(10)]
+
+        atoken = self.login()
+        problem_id = 3
+
+        # solutions to add
+        dummy_vars_1 = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs_1 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_1),
+                "variables": json.dumps(dummy_vars_1),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 201
+
+        # add more
+        dummy_vars_2 = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs_2 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_2),
+                "variables": json.dumps(dummy_vars_2),
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 202
+
+        # check solutions
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+            }
+        )
+
+        response = self.app.get(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        npt.assert_almost_equal(data["variables"], dummy_vars_1 + dummy_vars_2)
+        npt.assert_almost_equal(data["objectives"], dummy_objs_1 + dummy_objs_2)
+
+        # replace with new
+        dummy_vars_new = [list([np.random.uniform() for _ in range(11)]) for _ in range(10)]
+        dummy_objs_new = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(10)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_new),
+                "variables": json.dumps(dummy_vars_new),
+                "append": False,
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 202
+
+        response = self.app.get(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        npt.assert_almost_equal(data["variables"], dummy_vars_new)
+        npt.assert_almost_equal(data["objectives"], dummy_objs_new)
+
+    def test_no_append_add_no_existing(self):
+        atoken = self.login()
+        problem_id = 1
+
+        # solutions to add
+        dummy_vars_1 = [list([np.random.uniform() for _ in range(11)]) for _ in range(3)]
+        dummy_objs_1 = [list([3 * np.random.uniform() for _ in range(3)]) for _ in range(3)]
+
+        payload = json.dumps(
+            {
+                "problem_id": problem_id,
+                "objectives": json.dumps(dummy_objs_1),
+                "variables": json.dumps(dummy_vars_1),
+                "append": False,
+            }
+        )
+
+        response = self.app.post(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 201
+
+        response = self.app.get(
+            "/archive",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        npt.assert_almost_equal(data["variables"], dummy_vars_1)
+        npt.assert_almost_equal(data["objectives"], dummy_objs_1)

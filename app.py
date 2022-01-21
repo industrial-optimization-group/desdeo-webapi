@@ -32,7 +32,13 @@ def create_tables():
 
 
 from models import user_models  # noqa: E402
-from resources import method_resources, problem_resources, questionnaire_resources, user_resources  # noqa: E402
+from resources import (
+    method_resources,
+    problem_resources,
+    questionnaire_resources,
+    user_resources,
+    solution_archive_resources,
+)  # noqa: E402
 
 # import views
 
@@ -62,4 +68,9 @@ api.add_resource(method_resources.MethodCreate, "/method/create")
 api.add_resource(method_resources.MethodControl, "/method/control")
 
 # Add questionnaire endpoints
-api.add_resource(questionnaire_resources.QuestionnaireAfterSolutionProcess, "/questionnaire/after")
+api.add_resource(
+    questionnaire_resources.QuestionnaireAfterSolutionProcess, "/questionnaire/after"
+)
+
+# Add archive endpoint
+api.add_resource(solution_archive_resources.Archive, "/archive")

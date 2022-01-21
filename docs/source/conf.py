@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = "desdeo-restful"
+project = "desdeo-webapi"
 copyright = "2021, Giovanni Misitano"
 author = "Giovanni Misitano"
 
@@ -31,9 +31,9 @@ release = "0.1.0"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-        "sphinxcontrib.httpdomain",
-        "sphinx_rtd_theme",
-        ]
+    "sphinxcontrib.httpdomain",
+    "sphinx_rtd_theme",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

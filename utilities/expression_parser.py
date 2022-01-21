@@ -51,9 +51,12 @@ def numpify_expressions(expressions: List[str], variables: List[str]):
     return arrified_functions
 
 
-def recurse_check_lists_for_element_type(lst: list, types: tuple = (float, int)):
+def recurse_check_lists_for_element_type(
+    lst: list, types: tuple = (float, int)
+) -> bool:
     # check if the items in a list lst are all of type types. Recursively descends into
     # sublists of lst
+    """
     if not lst:
         return True
     elif isinstance(lst, list):
@@ -64,6 +67,32 @@ def recurse_check_lists_for_element_type(lst: list, types: tuple = (float, int))
         return True
     else:
         return False
+    """
+
+    # assume that lists have all elements of the same type
+    if not lst:
+        return True
+    elif len(lst) == 0:
+        return True
+
+    # descend into list
+    for e1 in lst:
+        # keep checking the first element of each sub list until a non-list is found
+        if isinstance(e1, types):
+            continue
+        elif not isinstance(e1, list):
+            return False
+
+        for e2 in e1:
+            if isinstance(e2, list):
+                e1 = e2
+                continue
+            elif isinstance(e2, types):
+                continue
+            else:
+                return False
+
+    return True
 
 
 def numpify_dict_items(dictionary: dict):

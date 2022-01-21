@@ -126,8 +126,12 @@ class MethodCreate(Resource):
             if query.problem_type == "Discrete":
                 problem: DiscreteDataProblem
                 method = NautilusNavigator(
-                    problem.objectives, problem.ideal, problem.nadir
+                    problem.objectives,
+                    problem.ideal,
+                    problem.nadir,
+                    problem.decision_variables,
                 )
+                method._steps_remaining = 40
             else:
                 # not discrete problem
                 message = "Currently NAUTILUS Navigator supports only the solving of discrete problem."
