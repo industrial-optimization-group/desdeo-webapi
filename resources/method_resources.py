@@ -359,17 +359,22 @@ class MethodControl(Resource):
             method_query.method_pickle = method
             method_query.last_request = new_request
             db.session.commit()
-
         except Exception as e:
             print(f"DEBUG: {e}")
             # error, could not iterate, internal server error
-            last_request_dump = json.dumps(
-                last_request.content, cls=NumpyEncoder, ignore_nan=True
-            )
+            if isinstance(last_request, tuple):
+                last_request_dump = [
+                    json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True)
+                    for r in last_request
+                ]
+            else:
+                last_request_dump = json.dumps(
+                    last_request.content, cls=NumpyEncoder, ignore_nan=True
+                )
             return {
                 "message": "Could not iterate the method with the given response",
                 "last_request": last_request_dump,
-            }, 500
+            }, 400
 
         # we dump the response first so that we can have it encoded into valid JSON using a custom encoder
         # ignore_nan=True will ensure np.nan is coverted to valid JSON value 'null'.
@@ -499,9 +504,7 @@ def EAControlPost(preference_type, last_request, user_response):
     if preference_type > len(last_request):
         # index out of range
         # preference type not specified
-        return {
-            "message": (f"Preference type index '{preference_type}' not valid.")
-        }, 400
+        raise ValueError(f"Preference type index '{preference_type}' not valid.")
     else:
         last_request = last_request[preference_type - 1]
 
