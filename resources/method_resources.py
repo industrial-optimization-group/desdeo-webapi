@@ -139,7 +139,7 @@ class MethodCreate(Resource):
                 # not analytical problem
                 message = "Currently RVEA supports only analytical problem types."
                 return {"message": message}, 406
-        elif method_name == "irvea" or "rvea/class":
+        elif method_name == "irvea" or method_name == "rvea/class":
             if query.problem_type == "Analytical" or "Classification PIS":
                 method = RVEA(problem, interact=True)
             else:
@@ -158,7 +158,6 @@ class MethodCreate(Resource):
             return {
                 "message": f"For some reason could not initialize method {method_name}"
             }, 500
-
         # add method to database, but keep only one method at any given time
         # if method already exists, delete it
         print(f"DEBUG: deleted {Method.query.filter_by(user_id=current_user_id).all()}")
@@ -421,14 +420,14 @@ class MethodControl(Resource):
 def EAControlGet(method):
     if isinstance(method.population.problem, classificationPISProblem):
         request = method.start()[0]
-        contents = [json.dumps(r, cls=NumpyEncoder, ignore_nan=True) for r in request]
+        """contents = [json.dumps(r, cls=NumpyEncoder, ignore_nan=True) for r in request]"""
     else:
         request = method.start()[0]
-        contents = [
+        """contents = [
             json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request
-        ]
+        ]"""
 
-    response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)
+    """response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)"""
     ea_individuals = json.dumps(
         method.population.individuals, cls=NumpyEncoder, ignore_nan=True
     )
@@ -450,10 +449,10 @@ def EAControlGet(method):
 
 def IOPISControlGet(method):
     request = method.start()
-    contents = [
+    """contents = [
         json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request
     ]
-    response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)
+    response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)"""
     ea_individuals = json.dumps(
         method.population.individuals, cls=NumpyEncoder, ignore_nan=True
     )
