@@ -284,7 +284,10 @@ class ProblemCreation(Resource):
                 "message": f"The problem type must be one of {available_problem_types}"
             }, 406
 
-        if data["problem_type"] == "Analytical" or "Classification PIS":
+        if (
+            data["problem_type"] == "Analytical"
+            or data["problem_type"] == "Classification PIS"
+        ):
             # handle analytical problem case
             data = problem_analytical_parser.parse_args()
             if data["objective_functions"] is None:

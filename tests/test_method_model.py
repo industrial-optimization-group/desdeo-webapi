@@ -45,7 +45,8 @@ class TestMethod(TestCase):
         problem_def = {
             "problem_type": "Analytical",
             "name": "setup_test_problem_1",
-            "objective_functions": ["x / y - z", "y / x - z", "z+y+x"],
+            # "objective_functions": ["x / y - z", "y / x - z", "z+y+x"],
+            "objective_functions": ["x + 3*y - z", "y - 3*x + z", "3*z - y + x"],
             "objective_names": ["f1", "f2", "f3"],
             "variables": ["x", "y", "z"],
             "variable_initial_values": [0, 0, 0],
@@ -349,8 +350,8 @@ class TestMethod(TestCase):
 
         response = {
             "response": {
-                "classifications": ["0", "<=", ">="],
-                "levels": [0, 8.0, -15.0],
+                "classifications": ["<", "0", ">="],
+                "levels": [-35.0, 8.0, -30.0],
                 "number_of_solutions": 4,
             }
         }
