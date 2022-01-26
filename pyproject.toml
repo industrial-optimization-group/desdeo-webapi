@@ -19,7 +19,7 @@ desdeo-mcdm = "^1.2.8"
 flask-restx = "^0.5.0"
 pandas = "^1.3.1"
 simplejson = "^3.17.3"
-desdeo-emo = "^1.3.2"
+desdeo-emo = "^1.3.3"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"
