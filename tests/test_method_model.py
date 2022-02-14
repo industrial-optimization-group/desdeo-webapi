@@ -805,3 +805,373 @@ class TestNautilusNavigator(TestCase):
         assert response.status_code == 200
 
         content = json.loads(response.data)["response"]
+
+
+@pytest.mark.enautilus
+@pytest.mark.method
+class TestENautilus(TestCase):
+    SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
+    TESTING = True
+
+    def create_app(self):
+        app.config["SQLALCHEMY_DATABASE_URI"] = self.SQLALCHEMY_DATABASE_URI
+        app.config["TESTING"] = self.TESTING
+        return app
+
+    def setUp(self):
+        db.create_all()
+        self.app = app.test_client()
+
+        db.session.add(
+            UserModel(username="test_user", password=UserModel.generate_hash("pass"))
+        )
+        db.session.commit()
+
+        atoken = self.login()
+
+        xs, fs = self.get_xs_and_fs()
+
+        payload = json.dumps(
+            {
+                "problem_type": "Discrete",
+                "name": "discrete_test_problem",
+                "objectives": fs,
+                "objective_names": ["f1", "f2", "f3"],
+                "variables": xs,
+                "variable_names": [
+                    "x1",
+                    "x2",
+                    "x3",
+                    "x4",
+                    "x5",
+                    "x6",
+                    "x7",
+                    "x8",
+                    "x9",
+                    "x10",
+                    "x11",
+                ],
+            }
+        )
+
+        response = self.app.post(
+            "/problem/create",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        if response.status_code != 201:
+            # ABORT, failed to add problem to DB!
+            self.tearDown()
+            pytest.exit(
+                f"FATAL ERROR: Could not add problem during setup in {__file__}."
+            )
+            exit()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+
+    def login(self, uname="test_user", pword="pass"):
+        # login and get access token for test user
+        payload = json.dumps({"username": uname, "password": pword})
+        response = self.app.post(
+            "/login", headers={"Content-Type": "application/json"}, data=payload
+        )
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        return access_token
+
+    def get_xs_and_fs(
+        self,
+        path=os.path.dirname(os.path.abspath(__file__)),
+        fname="data/testPF_3f_11x_max.csv",
+    ):
+        pf = np.loadtxt(f"{path}/{fname}", delimiter=",")
+        fs = list(map(list, -pf[:, 0:3]))
+        xs = list(map(list, pf[:, 3:]))
+
+        # the minus because the problem has been specified to be maximized in testPF_3f_11x_max.csv
+        return xs, fs
+
+    def test_create_method(self):
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+        method_name = "enautilus"
+
+        # create a nautilus navigator method
+        response = self.app.get(
+            "/method/create",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+        )
+
+        # no method created for user
+        assert response.status_code == 404
+
+        # create method
+        payload = json.dumps({"problem_id": 1, "method": method_name})
+
+        response = self.app.post(
+            "/method/create",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        data = json.loads(response.data)
+
+        assert data["method"] == method_name
+        assert data["owner"] == uname
+
+    """
+    def test_start_method(self):
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+
+        self.test_create_method()
+
+        # start method
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {atoken}"},
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        assert "response" in data
+        assert "message" in data["response"]
+        assert "ideal" in data["response"]
+        assert "nadir" in data["response"]
+        assert "reachable_lb" in data["response"]
+        assert "reachable_ub" in data["response"]
+        assert "user_bounds" in data["response"]
+        assert "reachable_idx" in data["response"]
+        assert "step_number" in data["response"]
+        assert "steps_remaining" in data["response"]
+        assert "distance" in data["response"]
+        assert "allowed_speeds" in data["response"]
+        assert "current_speed" in data["response"]
+        assert "navigation_point" in data["response"]
+
+    def test_iterate_method(self):
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+
+        self.test_create_method()
+
+        # start method
+        response = self.app.get(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+        )
+
+        assert response.status_code == 200
+
+        content = json.loads((response.data))["response"]
+
+        # first iteration
+        assert content["step_number"] == 1
+
+        # iterate method once
+        lower_b = content["reachable_lb"]
+        upper_b = content["reachable_ub"]
+
+        # set ref_point as middle of bounds
+        ref_p = [(upper_b[i] + lower_b[i]) / 2.0 for i in range(len(upper_b))]
+
+        response = {
+            "response": {
+                "reference_point": ref_p,
+                "speed": 1,
+                "go_to_previous": False,
+                "stop": False,
+                "user_bounds": [None, None, None],
+            }
+        }
+
+        payload = json.dumps(response, ignore_nan=True)
+
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        content = json.loads(response.data)["response"]
+
+        # iterated once
+        assert content["step_number"] == 2
+
+        # iterate till the end (add padding because we already iterate twice)
+        responses = [None, None]
+        for _ in range(38):
+            response = self.app.post(
+                "/method/control",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {atoken}",
+                },
+                data=payload,
+            )
+
+            assert response.status_code == 200
+
+            content = json.loads(response.data)["response"]
+            responses.append(content)
+
+        content = json.loads(response.data)["response"]
+
+        assert content["step_number"] == 40
+        assert content["steps_remaining"] == 1
+
+        # take some steps back
+        response = responses[18]
+        response["go_to_previous"] = True
+        response["reference_point"] = ref_p
+        response["speed"] = 3
+        response["stop"] = False
+        response = {"response": response}
+
+        payload = json.dumps(response, ignore_nan=True)
+
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        content = json.loads(response.data)["response"]
+
+        assert content["step_number"] == 19
+        assert content["steps_remaining"] == 22
+
+    def test_stop_method(self):
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+
+        self.test_create_method()
+
+        # start method
+        response = self.app.get(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+        )
+
+        assert response.status_code == 200
+
+        content = json.loads((response.data))["response"]
+
+        # first iteration
+        assert content["step_number"] == 1
+
+        # iterate method once
+        lower_b = content["reachable_lb"]
+        upper_b = content["reachable_ub"]
+
+        # set ref_point as middle of bounds
+        ref_p = [(upper_b[i] + lower_b[i]) / 2.0 for i in range(len(upper_b))]
+
+        response = {
+            "response": {
+                "reference_point": ref_p,
+                "speed": 1,
+                "go_to_previous": False,
+                "stop": False,
+                "user_bounds": [None, None, None],
+            }
+        }
+
+        payload = json.dumps(response, ignore_nan=True)
+
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        content = json.loads(response.data)["response"]
+
+        # iterated once
+        assert content["step_number"] == 2
+
+        # iterate till the end (add padding because we already iterate twice)
+        responses = [None, None]
+        for _ in range(98):
+            response = self.app.post(
+                "/method/control",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {atoken}",
+                },
+                data=payload,
+            )
+
+            assert response.status_code == 200
+
+            content = json.loads(response.data)["response"]
+            responses.append(content)
+
+        content = json.loads(response.data)["response"]
+
+        assert content["step_number"] == 40
+        assert content["steps_remaining"] == 1
+
+        # stop the method
+        response = responses[-1]
+        response["go_to_previous"] = False
+        response["reference_point"] = ref_p
+        response["speed"] = 3
+        response["stop"] = True
+        response = {"response": response}
+
+        payload = json.dumps(response, ignore_nan=True)
+
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        content = json.loads(response.data)["response"]
+    """

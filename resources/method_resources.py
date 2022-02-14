@@ -7,6 +7,7 @@ from desdeo_mcdm.interactive import (
     NautilusNavigator,
     NautilusNavigatorRequest,
     ReferencePointMethod,
+    ENautilus,
 )
 from desdeo_problem.problem.Problem import DiscreteDataProblem, classificationPISProblem
 from desdeo_emo.EAs import RVEA, IOPIS_NSGAIII
@@ -28,6 +29,7 @@ available_methods = {
     "irvea": RVEA,
     "iopis": IOPIS_NSGAIII,
     "rvea/class": RVEA,
+    "enautilus": ENautilus,
 }
 
 method_create_parser = reqparse.RequestParser()
@@ -115,7 +117,7 @@ class MethodCreate(Resource):
             }, 404
 
         # match the method and initialize
-        # TODO: add more methods!
+        # TODO: add more methods here!
         if method_name == "reference_point_method":
             method = ReferencePointMethod(problem, problem.ideal, problem.nadir)
         elif method_name == "synchronous_nimbus":
@@ -135,6 +137,14 @@ class MethodCreate(Resource):
             else:
                 # not discrete problem
                 message = "Currently NAUTILUS Navigator supports only the solving of discrete problem."
+                return {"message": message}, 406
+        elif method_name == "enautilus":
+            if query.problem_type == "Discrete":
+                problem: DiscreteDataProblem
+                method = ENautilus(problem.objectives, problem.ideal, problem.nadir)
+            else:
+                # enautilus supports only discrete problems
+                message = "E-NAUTILUS supports solcing discrete problems only"
                 return {"message": message}, 406
         elif method_name == "rvea":
             if query.problem_type == "Analytical":
