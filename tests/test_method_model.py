@@ -1114,3 +1114,153 @@ class TestENautilus(TestCase):
         # check said contents
         assert "message" in data["response"]
         assert "solution" in data["response"]
+
+    def test_go_back(self):
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+
+        self.create_method()
+
+        # start method
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {atoken}"},
+        )
+
+        assert response.status_code == 200
+
+        n_iterations = 13
+        n_points = 3
+
+        response = {"response": {"n_iterations": n_iterations, "n_points": n_points}}
+        payload = json.dumps(response)
+
+        # initialize method
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        preferred_point_index = 1
+        step_back = False
+        change_remaining = False
+        response = {
+            "response": {
+                "preferred_point_index": preferred_point_index,
+                "step_back": step_back,
+                "change_remaining": change_remaining,
+            }
+        }
+        payload = json.dumps(response)
+
+        # iterate 5 times
+        for _ in range(5):
+            response = self.app.post(
+                "/method/control",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {atoken}",
+                },
+                data=payload,
+            )
+
+        # ok
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        # check proper number of iterations
+        assert data["response"]["n_iterations_left"] == n_iterations - 5
+
+        # store data for going back
+        prev_solutions = data["response"]["points"]
+        prev_lower_bounds = data["response"]["lower_bounds"]
+        prev_upper_bounds = data["response"]["upper_bounds"]
+        prev_iter_left = data["response"]["n_iterations_left"]
+        prev_distances = data["response"]["distances"]
+
+        # iterate three more times, then go back
+        for _ in range(3):
+            response = self.app.post(
+                "/method/control",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {atoken}",
+                },
+                data=payload,
+            )
+
+        # ok
+        assert response.status_code == 200
+
+        response = {
+            "response": {
+                "preferred_point_index": preferred_point_index,
+                "step_back": True,  # stepping back!
+                "change_remaining": change_remaining,
+                "prev_solutions": prev_solutions,
+                "prev_lower_bounds": prev_lower_bounds,
+                "prev_upper_bounds": prev_upper_bounds,
+                "iterations_left": prev_iter_left,
+                "prev_distances": prev_distances,
+            }
+        }
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        # ok
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        # check new iters left
+        assert data["response"]["n_iterations_left"] == prev_iter_left
+
+        # check that everything is back
+        npt.assert_almost_equal(data["response"]["points"], prev_solutions)
+        npt.assert_almost_equal(data["response"]["lower_bounds"], prev_lower_bounds)
+        npt.assert_almost_equal(data["response"]["upper_bounds"], prev_upper_bounds)
+        npt.assert_almost_equal(data["response"]["distances"], prev_distances)
+
+        # finish iterating
+        response = {
+            "response": {
+                "preferred_point_index": preferred_point_index,
+                "step_back": step_back,
+                "change_remaining": change_remaining,
+            }
+        }
+        payload = json.dumps(response)
+        for _ in range(8):
+            response = self.app.post(
+                "/method/control",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {atoken}",
+                },
+                data=payload,
+            )
+
+        # ok
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        # No more iterations left, we should have contents according to a ENautilusStopRequest
+        # check said contents
+        assert "message" in data["response"]
+        assert "solution" in data["response"]
