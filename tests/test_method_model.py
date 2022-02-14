@@ -936,12 +936,40 @@ class TestENautilus(TestCase):
         assert data["method"] == method_name
         assert data["owner"] == uname
 
-    """
+    def create_method(self):
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+        method_name = "enautilus"
+
+        # create a nautilus navigator method
+        response = self.app.get(
+            "/method/create",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+        )
+
+        # create method
+        payload = json.dumps({"problem_id": 1, "method": method_name})
+
+        response = self.app.post(
+            "/method/create",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
     def test_start_method(self):
         uname = "test_user"
         atoken = self.login(uname=uname)
 
-        self.test_create_method()
+        self.create_method()
 
         # start method
         response = self.app.get(
@@ -953,62 +981,66 @@ class TestENautilus(TestCase):
 
         data = json.loads(response.data)
 
-        assert "response" in data
+        n_iterations = 8
+        n_points = 4
+
+        response = {"response": {"n_iterations": n_iterations, "n_points": n_points}}
+        payload = json.dumps(response)
+
+        # initialize method
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        # check contents of response
+        data = json.loads(response.data)
+
         assert "message" in data["response"]
         assert "ideal" in data["response"]
         assert "nadir" in data["response"]
-        assert "reachable_lb" in data["response"]
-        assert "reachable_ub" in data["response"]
-        assert "user_bounds" in data["response"]
-        assert "reachable_idx" in data["response"]
-        assert "step_number" in data["response"]
-        assert "steps_remaining" in data["response"]
-        assert "distance" in data["response"]
-        assert "allowed_speeds" in data["response"]
-        assert "current_speed" in data["response"]
-        assert "navigation_point" in data["response"]
+        assert "points" in data["response"]
+        assert "lower_bounds" in data["response"]
+        assert "upper_bounds" in data["response"]
+        assert "n_iterations_left" in data["response"]
+        assert "distances" in data["response"]
+
+        # check for proper contents
+        assert len(data["response"]["ideal"]) == 3
+        assert len(data["response"]["nadir"]) == 3
+        assert len(data["response"]["points"]) == n_points
+        assert data["response"]["n_iterations_left"] == n_iterations
+        assert len(data["response"]["lower_bounds"]) == n_points
+        assert len(data["response"]["upper_bounds"]) == n_points
+        assert len(data["response"]["distances"]) == n_points
 
     def test_iterate_method(self):
         uname = "test_user"
         atoken = self.login(uname=uname)
 
-        self.test_create_method()
+        self.create_method()
 
         # start method
         response = self.app.get(
             "/method/control",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {atoken}",
-            },
+            headers={"Authorization": f"Bearer {atoken}"},
         )
 
         assert response.status_code == 200
 
-        content = json.loads((response.data))["response"]
+        n_iterations = 8
+        n_points = 4
 
-        # first iteration
-        assert content["step_number"] == 1
+        response = {"response": {"n_iterations": n_iterations, "n_points": n_points}}
+        payload = json.dumps(response)
 
-        # iterate method once
-        lower_b = content["reachable_lb"]
-        upper_b = content["reachable_ub"]
-
-        # set ref_point as middle of bounds
-        ref_p = [(upper_b[i] + lower_b[i]) / 2.0 for i in range(len(upper_b))]
-
-        response = {
-            "response": {
-                "reference_point": ref_p,
-                "speed": 1,
-                "go_to_previous": False,
-                "stop": False,
-                "user_bounds": [None, None, None],
-            }
-        }
-
-        payload = json.dumps(response, ignore_nan=True)
-
+        # initialize method
         response = self.app.post(
             "/method/control",
             headers={
@@ -1020,14 +1052,37 @@ class TestENautilus(TestCase):
 
         assert response.status_code == 200
 
-        content = json.loads(response.data)["response"]
+        preferred_point_index = 1
+        step_back = False
+        change_remaining = False
+        response = {
+            "response": {
+                "preferred_point_index": preferred_point_index,
+                "step_back": step_back,
+                "change_remaining": change_remaining,
+            }
+        }
+        payload = json.dumps(response)
 
-        # iterated once
-        assert content["step_number"] == 2
+        # iterate once
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
 
-        # iterate till the end (add padding because we already iterate twice)
-        responses = [None, None]
-        for _ in range(38):
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        # one iteration should have elapsed
+        assert data["response"]["n_iterations_left"] == n_iterations - 1
+
+        # iterate three times more
+        for _ in range(3):
             response = self.app.post(
                 "/method/control",
                 headers={
@@ -1037,102 +1092,13 @@ class TestENautilus(TestCase):
                 data=payload,
             )
 
-            assert response.status_code == 200
+        data = json.loads(response.data)
 
-            content = json.loads(response.data)["response"]
-            responses.append(content)
+        # three iterations more should have elapsed
+        assert data["response"]["n_iterations_left"] == n_iterations - (1 + 3)
 
-        content = json.loads(response.data)["response"]
-
-        assert content["step_number"] == 40
-        assert content["steps_remaining"] == 1
-
-        # take some steps back
-        response = responses[18]
-        response["go_to_previous"] = True
-        response["reference_point"] = ref_p
-        response["speed"] = 3
-        response["stop"] = False
-        response = {"response": response}
-
-        payload = json.dumps(response, ignore_nan=True)
-
-        response = self.app.post(
-            "/method/control",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {atoken}",
-            },
-            data=payload,
-        )
-
-        assert response.status_code == 200
-
-        content = json.loads(response.data)["response"]
-
-        assert content["step_number"] == 19
-        assert content["steps_remaining"] == 22
-
-    def test_stop_method(self):
-        uname = "test_user"
-        atoken = self.login(uname=uname)
-
-        self.test_create_method()
-
-        # start method
-        response = self.app.get(
-            "/method/control",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {atoken}",
-            },
-        )
-
-        assert response.status_code == 200
-
-        content = json.loads((response.data))["response"]
-
-        # first iteration
-        assert content["step_number"] == 1
-
-        # iterate method once
-        lower_b = content["reachable_lb"]
-        upper_b = content["reachable_ub"]
-
-        # set ref_point as middle of bounds
-        ref_p = [(upper_b[i] + lower_b[i]) / 2.0 for i in range(len(upper_b))]
-
-        response = {
-            "response": {
-                "reference_point": ref_p,
-                "speed": 1,
-                "go_to_previous": False,
-                "stop": False,
-                "user_bounds": [None, None, None],
-            }
-        }
-
-        payload = json.dumps(response, ignore_nan=True)
-
-        response = self.app.post(
-            "/method/control",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {atoken}",
-            },
-            data=payload,
-        )
-
-        assert response.status_code == 200
-
-        content = json.loads(response.data)["response"]
-
-        # iterated once
-        assert content["step_number"] == 2
-
-        # iterate till the end (add padding because we already iterate twice)
-        responses = [None, None]
-        for _ in range(98):
+        # finish iterating
+        for _ in range(4):
             response = self.app.post(
                 "/method/control",
                 headers={
@@ -1142,36 +1108,9 @@ class TestENautilus(TestCase):
                 data=payload,
             )
 
-            assert response.status_code == 200
+        data = json.loads(response.data)
 
-            content = json.loads(response.data)["response"]
-            responses.append(content)
-
-        content = json.loads(response.data)["response"]
-
-        assert content["step_number"] == 40
-        assert content["steps_remaining"] == 1
-
-        # stop the method
-        response = responses[-1]
-        response["go_to_previous"] = False
-        response["reference_point"] = ref_p
-        response["speed"] = 3
-        response["stop"] = True
-        response = {"response": response}
-
-        payload = json.dumps(response, ignore_nan=True)
-
-        response = self.app.post(
-            "/method/control",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {atoken}",
-            },
-            data=payload,
-        )
-
-        assert response.status_code == 200
-
-        content = json.loads(response.data)["response"]
-    """
+        # No more iterations left, we should have contents according to a ENautilusStopRequest
+        # check said contents
+        assert "message" in data["response"]
+        assert "solution" in data["response"]
