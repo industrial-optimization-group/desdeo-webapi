@@ -121,3 +121,4 @@ This is a list of assumptions that hold throughout `desdeo-webapi`. They should 
   - The reference point method
   - NAUTILUS Navigator
   - RVEA
+  - E-NAUTILUS
