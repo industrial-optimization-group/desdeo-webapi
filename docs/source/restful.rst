@@ -698,6 +698,127 @@ x must contain all the information that was present in the original response in 
   It is a good idea to store the information in each of the JSON objects returned by the requests issued by a client so that
   stepping back is possible to any point from the current point.
 
+E-NAUTILUS
+----------
+
+When E-NAUTILUS is first started, the first request returned by E-NAUTILUS will look as
+the example shown below:
+
+.. sourcecode:: json
+
+  {
+    "response": {
+      "message": "...",
+      "ideal": "[0.4, 0.9, 0.11]",
+      "nadir": "[5.9, 9.8, 12.3]",
+    },
+  }
+
+The `ideal` and `nadir` entries will show the best and worst reachable values from the starting point, which
+in E-NAUTILUS is the nadir point. As a response to this request, a JSON object with the following contents is 
+expected (with example values):
+
+.. sourcecode:: json
+
+  {
+    "response": {
+      "n_iterations": 10,
+      "n_points": 3,
+    },
+  }
+
+In the above object, `n_iterations` is the number of total iterations that should be taken in the E-NAUTILUS method
+and `n_points` is the number of intermediate points shown in each iteration. The number of iterations may be changed
+during the course of the method.
+
+After E-NAUTILUS has been initialized by providing the above response to the first request, subsequent requests will have the 
+following (example) contents:
+
+.. sourcecode:: json
+
+  {
+    "response": {
+      "message": "...",
+      "ideal": "[0.4, 0.9, 0.11]",
+      "nadir": "[5.9, 9.8, 12.3]",
+      "points": "[[1.2, 3.2, 2.2], [0.8, 3.1, 3.9]]",
+      "lower_bounds": "[[0.9, 1.2, 2.2], [0.5, 1.1, 1.9]]",
+      "upper_bounds": "[[3.9, 3.2, 4.2], [3.5, 3.1, 4.9]]",
+      "n_iterations_left": 4,
+      "distances": "[0.66, 0.56]",
+    },
+  }
+
+In these requests, the entry `points` will be a 2-dimensional array with the intermediate points returned by E-NAUTILUS
+in an intermediate iteration. Likewise, `lower_bounds` and `upper_bounds` are the lower and upper bounds of the reachable
+from each intermediate point. `n_iterations_left` is the number of iterations left and `distances` are the distances (0-100,
+zero being farthest from the Pareto front and 100 being closest) of each intermediate point to the Pareto optimal
+front. `points`, `lower_bounds`, and `upper_bounds` are ordered by index, meaning that the bounds of the point at index `n`
+in `points` are located at index `n` in `lower_bounds` and `upper_bounds`, respectively.
+
+The response expected to the above type of requests should have the following fields (with examples given):
+
+.. sourcecode:: json
+
+  {
+    "response": {
+        "preferred_point_index": 1,
+        "step_back": false,
+        "change_remaining": true,
+        "iterations_left": 5,
+    },
+  }
+
+Above, `preferred_point_index` is the index of the point in `points` which should be selected for the next
+iteration in E-NAUTILUS. `step_back` indicates that the method should go back to a previous iteration.
+`change_remaining` indicates that the remaining number of iterations should be changed. `iterations_left` is
+required only when either `step_back` or `change_remaining` is ``true``.
+
+.. note::
+
+  When stepping back in E-NAUTILUS (i.e., `step_back` is set to ``true``), a response with the follwoing
+  example contents
+  is expected:
+
+  .. sourcecode:: json
+
+    {
+      "response": {
+          "preferred_point_index": "...",
+          "step_back": true,
+          "change_remaining": "...",
+          "prev_solutions": "[[1.2, 3.2, 2.2], [0.8, 3.1, 3.9]]",
+          "prev_lower_bounds": "[[0.9, 1.2, 2.2], [0.5, 1.1, 1.9]]",
+          "prev_upper_bounds": "[[3.9, 3.2, 4.2], [3.5, 3.1, 4.9]]",
+          "iterations_left": 3,
+          "prev_distances": "[0.66, 0.56]",
+      }
+    }
+
+  In other words, the full state of the E-NAUTILUS method in the previous iterations, to which
+  we wish to return, must be supplied is the response. It is therefore
+  a good idea to keep track of previous
+  states in any application making use of this API.
+
+When E-NAUTILUS is iterated for the last time, a request with the following example contents is
+returned:
+
+.. sourcecode:: json
+
+  {
+    "response": {
+      "message": "...",
+      "solution": "[1.0, 1.1, 1.2]",
+    },
+  }
+
+The `solution` entry contains the final (Pareto optimal) solution found by the E-NAUTILUS
+method in the objective space of the problem being solved.
+
+.. note::
+  
+  At the moment, only the objective values of the solution are returned.
+
 RVEA
 ----
 
