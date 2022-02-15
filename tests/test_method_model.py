@@ -1264,3 +1264,91 @@ class TestENautilus(TestCase):
         # check said contents
         assert "message" in data["response"]
         assert "solution" in data["response"]
+
+    def test_change_remaining_iter(self):
+        # test changing the remaining iterations in E-NAUTILUS
+        uname = "test_user"
+        atoken = self.login(uname=uname)
+
+        self.create_method()
+
+        # start method
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {atoken}"},
+        )
+
+        assert response.status_code == 200
+
+        n_iterations = 20
+        n_points = 4
+
+        response = {"response": {"n_iterations": n_iterations, "n_points": n_points}}
+        payload = json.dumps(response)
+
+        # initialize method
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        preferred_point_index = 1
+        step_back = False
+        change_remaining = False
+        response = {
+            "response": {
+                "preferred_point_index": preferred_point_index,
+                "step_back": step_back,
+                "change_remaining": change_remaining,
+            }
+        }
+        payload = json.dumps(response)
+
+        # iterate 6 times
+        for _ in range(6):
+            response = self.app.post(
+                "/method/control",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {atoken}",
+                },
+                data=payload,
+            )
+
+        # check remaining iterations
+        data = json.loads(response.data)
+
+        assert data["response"]["n_iterations_left"] == 14
+
+        # change remaining iterations to 5
+        preferred_point_index = 1
+        step_back = False
+        change_remaining = True
+        response = {
+            "response": {
+                "preferred_point_index": preferred_point_index,
+                "step_back": step_back,
+                "change_remaining": change_remaining,
+                "iterations_left": 5,
+            }
+        }
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {atoken}",
+            },
+            data=payload,
+        )
+
+        data = json.loads(response.data)
+
+        assert data["response"]["n_iterations_left"] == 5
