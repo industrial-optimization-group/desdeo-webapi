@@ -1114,6 +1114,7 @@ class TestENautilus(TestCase):
         # check said contents
         assert "message" in data["response"]
         assert "solution" in data["response"]
+        assert "objective" in data["response"]
 
     def test_go_back(self):
         uname = "test_user"
