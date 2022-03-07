@@ -141,7 +141,12 @@ class MethodCreate(Resource):
         elif method_name == "enautilus":
             if query.problem_type == "Discrete":
                 problem: DiscreteDataProblem
-                method = ENautilus(problem.objectives, problem.ideal, problem.nadir)
+                method = ENautilus(
+                    problem.objectives,
+                    problem.ideal,
+                    problem.nadir,
+                    variables=problem.decision_variables,
+                )
             else:
                 # enautilus supports only discrete problems
                 message = "E-NAUTILUS supports solcing discrete problems only"
