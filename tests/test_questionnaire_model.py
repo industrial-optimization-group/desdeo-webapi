@@ -1,4 +1,5 @@
 import datetime
+import pytest
 import json
 
 from app import app, db
@@ -7,6 +8,7 @@ from models.questionnaire_models import QuestionLikert, Questionnaire, QuestionO
 from models.user_models import UserModel
 
 
+@pytest.mark.questionnaire
 class TestQuestionnaire(TestCase):
     SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
     TESTING = True
@@ -20,18 +22,34 @@ class TestQuestionnaire(TestCase):
         db.create_all()
         self.app = app.test_client()
 
-        db.session.add(UserModel(username="test_user", password=UserModel.generate_hash("pass")))
+        db.session.add(
+            UserModel(username="test_user", password=UserModel.generate_hash("pass"))
+        )
         db.session.commit()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
 
+    def login(self, uname="test_user", pword="pass"):
+        # login and get access token for test user
+        payload = json.dumps({"username": uname, "password": pword})
+        response = self.app.post(
+            "/login", headers={"Content-Type": "application/json"}, data=payload
+        )
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+
+        return access_token
+
     def test_save_questionnaire(self):
         user_id = UserModel.query.filter_by(username="test_user").first().id
 
         # create questionnaire
-        questionnaire = Questionnaire(user_id=user_id, name="test questionnaire", date=datetime.datetime.now())
+        questionnaire = Questionnaire(
+            user_id=user_id, name="test questionnaire", date=datetime.datetime.now()
+        )
         db.session.add(questionnaire)
         db.session.commit()
 
@@ -84,11 +102,7 @@ class TestQuestionnaire(TestCase):
         assert len(questionnaire.questions_open) == 2
 
     def test_get_questionnaire_after(self):
-        payload = json.dumps({"username": "test_user", "password": "pass"})
-        response = self.app.post("/login", headers={"Content-Type": "application/json"}, data=payload)
-        data = json.loads(response.data)
-
-        access_token = data["access_token"]
+        access_token = self.login()
 
         response = self.app.get(
             "/questionnaire/after",
@@ -102,3 +116,66 @@ class TestQuestionnaire(TestCase):
         print(data["questions"])
 
         assert len(data["questions"]) == 33
+
+    def test_post_questionnaire_after(self):
+        access_token = self.login()
+
+        # get questions
+        response = self.app.get(
+            "/questionnaire/after",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        assert "questions" in data
+
+        # give dummy answers to each question depending on type
+        questions = data["questions"]
+        for i, q in enumerate(questions):
+            if q["type"] == "likert":
+                answer = 3
+            elif q["type"] == "differential":
+                answer = 2
+            elif q["type"] == "open":
+                answer = "test response"
+            else:
+                assert False
+
+            q["answer"] = answer
+
+            questions[i] = q
+
+        payload = json.dumps({"questions": questions})
+
+        response = self.app.post(
+            "/questionnaire/after",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        # check that the questions saved to the DB have the correct answers
+        user_id = UserModel.query.filter_by(username="test_user").first().id
+
+        questionnaire = Questionnaire.query.filter_by(user_id=user_id).first()
+
+        # check likert and differential questions
+        for ql in questionnaire.questions_likert:
+            assert ql.answer in [2, 3]
+
+        # check open questions
+        for qo in questionnaire.questions_open:
+            assert qo.answer == "test response"
+
+        # check that all questions are present
+        assert (
+            len(questionnaire.questions_likert) + len(questionnaire.questions_open)
+            == 33
+        )
