@@ -35,7 +35,8 @@ class Questionnaire(db.Model):
     __tablename__ = "questionnaire"
     id = db.Column(db.Integer, primary_key=True, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(1000), nullable=False)
+    description = db.Column(db.String(1000))
     date = db.Column(db.DateTime, nullable=False)
 
     questions_likert = db.relationship(QuestionLikert)

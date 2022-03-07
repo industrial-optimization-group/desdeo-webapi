@@ -48,7 +48,10 @@ class TestQuestionnaire(TestCase):
 
         # create questionnaire
         questionnaire = Questionnaire(
-            user_id=user_id, name="test questionnaire", date=datetime.datetime.now()
+            user_id=user_id,
+            name="test questionnaire",
+            date=datetime.datetime.now(),
+            description="Testing",
         )
         db.session.add(questionnaire)
         db.session.commit()
@@ -148,7 +151,8 @@ class TestQuestionnaire(TestCase):
 
             questions[i] = q
 
-        payload = json.dumps({"questions": questions})
+        description = "Test description"
+        payload = json.dumps({"questions": questions, "description": description})
 
         response = self.app.post(
             "/questionnaire/after",
@@ -179,3 +183,6 @@ class TestQuestionnaire(TestCase):
             len(questionnaire.questions_likert) + len(questionnaire.questions_open)
             == 33
         )
+
+        # check the description is correct
+        assert questionnaire.description == "Test description"

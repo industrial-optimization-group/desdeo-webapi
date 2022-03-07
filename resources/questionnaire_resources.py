@@ -14,6 +14,12 @@ after_solution_parser.add_argument(
     action="append",
     required=True,
 )
+after_solution_parser.add_argument(
+    "description",
+    type=str,
+    help="Description of the context of the questionnaire.",
+    required=True,
+)
 
 
 def create_likert(name: str, question_txt: str):
@@ -196,12 +202,14 @@ class QuestionnaireAfterSolutionProcess(Resource):
         data = after_solution_parser.parse_args()
 
         questions = data["questions"]
+        description = data["description"]
 
         try:
             # create questionnaire to store answers to and add it to the DB
             questionnaire = Questionnaire(
                 user_id=current_user_id,
                 name="After optimization process",
+                description=description,
                 date=datetime.datetime.now(),
             )
             db.session.add(questionnaire)
