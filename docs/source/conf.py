@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "desdeo-webapi"
-copyright = "2021, Giovanni Misitano"
+copyright = "2022, Multiobjective optimization group"
 author = "Giovanni Misitano"
 
 # The full version, including alpha/beta/rc tags

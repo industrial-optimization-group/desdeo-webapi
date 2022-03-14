@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to desdeo-restful's documentation!
-==========================================
+Welcome to desdeo-webapi's documentation!
+=========================================
 
 .. toctree::
    :maxdepth: 3
