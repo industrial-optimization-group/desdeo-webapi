@@ -1,6 +1,7 @@
 from app import db
 
 from copy import deepcopy
+import datetime
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.user_models import UserModel
@@ -34,6 +35,13 @@ archive_parser_add.add_argument(
     default=True,
     required=False,
 )
+archive_parser_add.add_argument(
+    "info",
+    type=str,
+    help="Information related to the solution.",
+    default="",
+    required=False,
+)
 
 # For GET
 archive_parser_get = reqparse.RequestParser()
@@ -53,7 +61,10 @@ class Archive(Resource):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
 
-        problem_ids = [problem.id for problem in Problem.query.filter_by(user_id=current_user_id).all()]
+        problem_ids = [
+            problem.id
+            for problem in Problem.query.filter_by(user_id=current_user_id).all()
+        ]
 
         # check that supplied problem_id exists for user
         if data["problem_id"] not in problem_ids:
@@ -81,7 +92,18 @@ class Archive(Resource):
                 "variables": variables,
                 "objectives": objectives,
             }
-            db.session.add(SolutionArchive(problem_id=problem_id, solutions_dict_pickle=new_solutions))
+
+            # check for info
+            info = data["info"] if data["info"] else ""
+
+            db.session.add(
+                SolutionArchive(
+                    problem_id=problem_id,
+                    solutions_dict_pickle=new_solutions,
+                    meta_data=info,
+                    date=datetime.datetime.now(),
+                )
+            )
             db.session.commit()
 
             msg = f"Created new archive for problem with id {problem_id} and added solutions."
@@ -89,6 +111,8 @@ class Archive(Resource):
         else:
             if data["append"]:
                 # add supplied solutions to existing archive
+                # need to make deepcopy to have a new mem addres so that sqlalchemy updates the pickle
+                # TODO: use a Mutable column
                 solutions = deepcopy(archive_query.solutions_dict_pickle)
                 solutions["variables"] += variables
                 solutions["objectives"] += objectives
@@ -98,9 +122,24 @@ class Archive(Resource):
                 solutions = {"variables": variables, "objectives": objectives}
                 msg = f"Replaced solutions in existing archive for problem with id f{problem_id}"
 
-            # need to make deepcopy to have a new mem addres so that sqlalchemy updates the pickle
-            # TODO: use a Mutable column
             archive_query.solutions_dict_pickle = solutions
+            archive_query.date = datetime.datetime.now()
+
+            # update the meta data with provided info
+            if data["info"] and data["append"]:
+                # if new info is given, append it to the old info
+                archive_query.meta_data += f" {data['info']}"
+            elif not data["append"] and data["info"]:
+                # if no append, but new info is given, wipe the old info as well.
+                archive_query.meta_data = data["info"]
+            elif not data["append"] and not data["info"]:
+                # just reset the info
+                archive_query.meta_data = ""
+            else:
+                # append and no info
+                # do nothing to the info
+                pass
+
             db.session.commit()
 
             return {"message": msg}, 202
@@ -112,7 +151,10 @@ class Archive(Resource):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
 
-        problem_ids = [problem.id for problem in Problem.query.filter_by(user_id=current_user_id).all()]
+        problem_ids = [
+            problem.id
+            for problem in Problem.query.filter_by(user_id=current_user_id).all()
+        ]
 
         # check that supplied problem_id exists for user
         if data["problem_id"] not in problem_ids:
@@ -131,5 +173,12 @@ class Archive(Resource):
 
         # query not empty
         dict_data = query.solutions_dict_pickle
+        info = query.meta_data
+        date = query.date.strftime("%d/%m/%Y -- %H:%M:%S")
 
-        return {"variables": dict_data["variables"], "objectives": dict_data["objectives"]}, 200
+        return {
+            "variables": dict_data["variables"],
+            "objectives": dict_data["objectives"],
+            "info": info,
+            "date": date,
+        }, 200

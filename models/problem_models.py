@@ -23,6 +23,8 @@ class SolutionArchive(db.Model):
     id = db.Column(db.Integer, primary_key=True, unique=True)
     problem_id = db.Column(db.Integer, db.ForeignKey("problem.id"), nullable=False)
     solutions_dict_pickle = db.Column(db.PickleType(pickler=dill))
+    meta_data = db.Column(db.String(2000), nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
 
     @validates("solutions_dict_pickle")
     def validate_dict(self, _, dict_):
