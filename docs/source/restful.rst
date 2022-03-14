@@ -364,6 +364,8 @@ problem.
     {
       "variables": [[1.1, 2.2, 3.3], [1.2, 3.1, 2.2], [0.4, 1.2, 1.7]],
       "objectives": [[0.5, 0.7], [0.3, 0.8], [0.9, 0.1]],
+      "info": "These solutions are interesting.",
+      "date": "1/1/2022 -- 11:11:11",
     }
   
   :reqheader Authorization: A JWT access token. Example ``Bearer <access token>``
@@ -372,6 +374,8 @@ problem.
 
   :>json array variables: An array of arrays with variable vectors.
   :>json array objectives: An array of array with objective vectors.
+  :>json string info: A string containing info related to the archive.
+  :>json string date: A date indicateing the last time the archive was modified. The date is in the format ``%d/%m/%Y -- %H:%M:%S``.
 
   .. note::
 
@@ -404,6 +408,7 @@ with 3 variables and 2 objectives.
       "variables": [[1.1, 2.2, 3.3], [1.2, 3.1, 2.2], [0.4, 1.2, 1.7]],
       "objectives": [[0.5, 0.7], [0.3, 0.8], [0.9, 0.1]],
       "append": true,
+      "info": "Info about the added solutions.",
     }
 
   **Example response**
@@ -424,7 +429,10 @@ with 3 variables and 2 objectives.
   :<json array variables: An array of arrays with variable vectors.
   :<json array objectives: An array of array with objective vectors.
   :<json boolean append: Whether to append the solution to an existing archive or
-    change the content of the archive to the sent solutions.
+    change the content of the archive to the sent solutions. Defaults to true.
+  :<json string info: Info related to the solutions added. Optional. If ``append`` was true, then 
+    the contents of info will be appended to the existing info, if any. If ``append`` was false, then
+    the contents of info will replace the existing info in the archive.
 
   .. note::
 
