@@ -1,7 +1,7 @@
 from app import db
 from sqlalchemy.orm import validates
 
-log_entry_types = ["Intermediate solution", "Final solution", "Info"]
+log_entry_types = ["Intermediate solution", "Final solution", "Preference", "Info"]
 
 
 class LogEntry(db.Model):
@@ -10,7 +10,7 @@ class LogEntry(db.Model):
     entry_type = db.Column(db.String(100), nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False)
     data = db.Column(db.String(1000), nullable=True)
-    info = db.Colum(db.String(1000), nullable=False)
+    info = db.Column(db.String(1000), nullable=False)
 
     def validate_type(self, _, type_):
         if type_ not in log_entry_types:

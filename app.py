@@ -38,6 +38,7 @@ from resources import (
     questionnaire_resources,
     user_resources,
     solution_archive_resources,
+    log_resources,
 )  # noqa: E402
 
 # import views
@@ -77,3 +78,6 @@ api.add_resource(
 
 # Add archive endpoint
 api.add_resource(solution_archive_resources.Archive, "/archive")
+
+# Add log endpoint
+api.add_resource(log_resources.LogEntryResource, "/log")
