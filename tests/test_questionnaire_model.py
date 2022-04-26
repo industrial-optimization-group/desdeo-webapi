@@ -252,4 +252,68 @@ class TestQuestionnaire(TestCase):
         assert data["questions"][2]["name"] == "LP_4-1"
 
     def test_post_questionnaire(self):
-        pass
+        access_token = self.login()
+
+        # first iteration
+        iteration = 1
+        payload = json.dumps({"iteration": iteration})
+
+        response = self.app.get(
+            "/questionnaire/during",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert len(data["questions"]) == 4
+        assert "start_time" in data
+
+        # answer the questions
+        questions = data["questions"]
+
+        questions[0]["answer"] = 5
+        questions[1]["answer"] = "A nice solution."
+        questions[2]["answer"] = 4
+        questions[3]["answer"] = 6
+
+        description = "Testing"
+        payload = json.dumps(
+            {
+                "iteration": iteration,
+                "questions": questions,
+                "description": description,
+                "start_time": data["start_time"],
+            }
+        )
+
+        response = self.app.post(
+            "/questionnaire/during",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        # check that the questions saved to the DB have the correct answers
+        user_id = UserModel.query.filter_by(username="test_user").first().id
+
+        questionnaire = Questionnaire.query.filter_by(user_id=user_id).first()
+
+        # check likert and differential questions
+        for ql in questionnaire.questions_likert:
+            assert ql.answer in [5, 4, 6]
+
+        # check open questions
+        for qo in questionnaire.questions_open:
+            assert qo.answer == "A nice solution."
+
+        # check start_time is less than completion_time
+        assert questionnaire.start_time < questionnaire.completion_time
