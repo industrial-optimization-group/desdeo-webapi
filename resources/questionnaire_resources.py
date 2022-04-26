@@ -21,6 +21,22 @@ after_solution_parser.add_argument(
     required=True,
 )
 
+during_solution_get_parser = reqparse.RequestParser()
+during_solution_get_parser.add_argument(
+    "iteration",
+    type=int,
+    help="The number of the last completed iteration.",
+    required=True,
+)
+
+during_solution_post_parser = after_solution_parser.copy()
+during_solution_post_parser.add_argument(
+    "iteration",
+    type=int,
+    help="The number of the last completed iteration.",
+    required=True,
+)
+
 
 def create_likert(name: str, question_txt: str):
     return {"type": "likert", "name": name, "question_txt": question_txt, "answer": ""}
@@ -197,6 +213,95 @@ class QuestionnaireAfterSolutionProcess(Resource):
             create_likert("X-2-likert", "The problem was important for the to solve.")
         )
         questions.append(create_open("X-2-open", "Please describe why?"))
+
+        return {"questions": questions}, 200
+
+    @jwt_required()
+    def post(self):
+        current_user = get_jwt_identity()
+        current_user_id = UserModel.query.filter_by(username=current_user).first().id
+
+        data = after_solution_parser.parse_args()
+
+        questions = data["questions"]
+        description = data["description"]
+
+        try:
+            # create questionnaire to store answers to and add it to the DB
+            questionnaire = Questionnaire(
+                user_id=current_user_id,
+                name="After optimization process",
+                description=description,
+                date=datetime.datetime.now(),
+            )
+            db.session.add(questionnaire)
+            db.session.commit()
+
+            # parse the answers of each question returned
+            for q in questions:
+                if q["type"] in ["likert", "differential"]:
+                    q_to_add = QuestionLikert(
+                        parent_id=questionnaire.id,
+                        name=q["name"],
+                        question_txt=q["question_txt"],
+                        answer=q["answer"],
+                    )
+                    db.session.add(q_to_add)
+                elif q["type"] == "open":
+                    q_to_add = QuestionOpen(
+                        parent_id=questionnaire.id,
+                        name=q["name"],
+                        question_txt=q["question_txt"],
+                        answer=q["answer"],
+                    )
+                    db.session.add(q_to_add)
+                else:
+                    print(
+                        f"DEBUG: while parsing questions, encountered a question of unknown type: {q['type']}"
+                    )
+
+            db.session.commit()
+        except Exception as e:
+            print(f"DEBUG: Got an exception while parsin questionnaire answers: {e}")
+            return {"message:": "Could not parse anwers."}, 500
+
+        return {
+            "message": "Answers parsed and added to the database successfully!"
+        }, 200
+
+
+class QuestionnaireDuringSolutionProcess(Resource):
+    @jwt_required()
+    def get(self):
+        data = during_solution_get_parser.parse_args()
+        iteration = data["iteration"]
+
+        questions = []
+
+        if iteration == 1:
+            questions.append(
+                create_likert(
+                    "DP_1-1", "The preference information was easy to provide."
+                )
+            )
+
+        questions.append(
+            create_open(
+                "GP_1-3",
+                "What do you wish to achieve by providing this preference information?",
+            )
+        )
+        questions.append(
+            create_likert(
+                "LP_3-3",
+                "The solution I obtained reflects my preference information well.",
+            )
+        )
+        questions.append(
+            create_likert(
+                "LP_4-1", "After this iteration, I know more about the problem."
+            )
+        )
 
         return {"questions": questions}, 200
 

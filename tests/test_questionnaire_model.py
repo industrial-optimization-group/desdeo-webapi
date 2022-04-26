@@ -186,3 +186,54 @@ class TestQuestionnaire(TestCase):
 
         # check the description is correct
         assert questionnaire.description == "Test description"
+
+    def test_get_questionnaire_during(self):
+        access_token = self.login()
+
+        # first iteration
+        iteration = 1
+        payload = json.dumps({"iteration": iteration})
+
+        response = self.app.get(
+            "/questionnaire/during",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert len(data["questions"]) == 4
+
+        # check the questions
+        assert data["questions"][0]["name"] == "DP_1-1"
+        assert data["questions"][1]["name"] == "GP_1-3"
+        assert data["questions"][2]["name"] == "LP_3-3"
+        assert data["questions"][3]["name"] == "LP_4-1"
+
+        # later iteration
+        iteration = 4
+        payload = json.dumps({"iteration": iteration})
+
+        response = self.app.get(
+            "/questionnaire/during",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        # should be one less than with iteration = 1
+        assert len(data["questions"]) == 3
+
+        # check questions
+        assert data["questions"][0]["name"] == "GP_1-3"
+        assert data["questions"][1]["name"] == "LP_3-3"
+        assert data["questions"][2]["name"] == "LP_4-1"
