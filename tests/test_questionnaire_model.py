@@ -118,7 +118,7 @@ class TestQuestionnaire(TestCase):
 
         print(data["questions"])
 
-        assert len(data["questions"]) == 33
+        assert len(data["questions"]) == 36
 
     def test_post_questionnaire_after(self):
         access_token = self.login()
@@ -181,7 +181,7 @@ class TestQuestionnaire(TestCase):
         # check that all questions are present
         assert (
             len(questionnaire.questions_likert) + len(questionnaire.questions_open)
-            == 33
+            == 36
         )
 
         # check the description is correct

@@ -72,7 +72,7 @@ class QuestionnaireAfterSolutionProcess(Resource):
         questions.append(
             create_differential(
                 "DP_1-2-differential",
-                "How close is the final solution to what you expected?",
+                "If you imagined a desired solution in the beginning, how similar is it when compared to the final solution you obtained?",
             )
         )
         questions.append(create_open("DP_1-2-open", "Please describe why?"))
@@ -85,7 +85,7 @@ class QuestionnaireAfterSolutionProcess(Resource):
         questions.append(
             create_likert(
                 "LP_4-3",
-                "I obtained a clear idea of the possible choices available among all the possible solutions.",
+                "I obtained a clear idea of the values that the objectives (indicators) can simultaneously achieve.",
             )
         )
         questions.append(
@@ -100,13 +100,13 @@ class QuestionnaireAfterSolutionProcess(Resource):
         questions.append(
             create_likert(
                 "GP_2-4-likert",
-                "I am satisfied with my performance (in interacting with the method) in finding my preferred solutions.",
+                "I am satisfied with my performance in finding the final solution.",
             )
         )
         questions.append(
             create_open(
                 "GP_2-4-open",
-                "I am satisfied with my performance (in interacting with the method) in finding my preferred solutions.",
+                "Please describe why?",
             )
         )
         questions.append(
@@ -116,21 +116,19 @@ class QuestionnaireAfterSolutionProcess(Resource):
             )
         )
         questions.append(
-            create_likert("GP_2-2", "Finding the preferred solution was simple.")
-        )
-        questions.append(
             create_likert("GP_4-3", "It was easy to learn to use this method.")
         )
         questions.append(
             create_likert(
-                "GP_1-2-likert", "I was able to express my preferences as I wanted."
+                "GP_1-2-likert",
+                "I was able to reflect my actual preferences when providing the information required by the method.",
             )
         )
         questions.append(create_open("GP_1-2-open", "Please describe why?"))
         questions.append(
             create_likert(
                 "LP_3-1",
-                "In general, the method reacted to the preference information I provided as I expected.",
+                "In general, the method reacted to the preference information I provided.",
             )
         )
         questions.append(
@@ -144,17 +142,17 @@ class QuestionnaireAfterSolutionProcess(Resource):
         questions.append(
             create_likert(
                 "GP_4-4",
-                "The method has all the functions and capabilities I expected it to have.",
+                "The method has all the necessary functionalities.",
             )
         )
         questions.append(
             create_likert(
                 "GP_4-5",
-                "I was able to go backward whenever I needed in the solution process.",
+                "I was able to return to previous solutions whenever I needed in the solution process.",
             )
         )
         questions.append(
-            create_likert("GP_2-3", "I had to work hard to find my preferred solution.")
+            create_likert("GP_2-3", "I had to work hard to find the final solution.")
         )
         questions.append(
             create_likert(
@@ -165,7 +163,7 @@ class QuestionnaireAfterSolutionProcess(Resource):
         questions.append(
             create_likert(
                 "GP_2-6",
-                "It took too many iterations to arrive to the acceptable solution.",
+                "It took too many iterations to arrive to the final solution.",
             )
         )
         questions.append(create_likert("GP_2-7", "I felt tired."))
@@ -191,6 +189,14 @@ class QuestionnaireAfterSolutionProcess(Resource):
             create_likert("DP_4-2-likert", "I am satisfied with the solution I chose.")
         )
         questions.append(create_open("DP_4-2-open", "Please describe why?"))
+        questions.append(
+            create_likert("X-1-likert", "The problem was easy to understand.")
+        )
+        questions.append(create_open("X-1-open", "Please describe why?"))
+        questions.append(
+            create_likert("X-2-likert", "The problem was important for the to solve.")
+        )
+        questions.append(create_open("X-2-open", "Please describe why?"))
 
         return {"questions": questions}, 200
 
