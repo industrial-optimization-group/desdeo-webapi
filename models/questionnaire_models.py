@@ -37,13 +37,15 @@ class Questionnaire(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     name = db.Column(db.String(1000), nullable=False)
     description = db.Column(db.String(1000))
-    date = db.Column(db.DateTime, nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    completion_time = db.Column(db.DateTime, nullable=False)
 
     questions_likert = db.relationship(QuestionLikert)
     questions_open = db.relationship(QuestionOpen)
 
     def __repr__(self):
         return (
-            f"id: {self.id}, user_id: {self.user_id}, name: {self.name}, date: {self.date}, "
+            f"id: {self.id}, user_id: {self.user_id}, name: {self.name}, start_time: {self.start_time}, "
+            f"completion_time: {self.completion_time},"
             f"likert children: {self.questions_likert}, open children: {self.questions_open}"
         )

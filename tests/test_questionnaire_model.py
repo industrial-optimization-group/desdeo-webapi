@@ -50,7 +50,8 @@ class TestQuestionnaire(TestCase):
         questionnaire = Questionnaire(
             user_id=user_id,
             name="test questionnaire",
-            date=datetime.datetime.now(),
+            start_time=datetime.datetime.now(),
+            completion_time=datetime.datetime.now(),
             description="Testing",
         )
         db.session.add(questionnaire)
@@ -116,7 +117,7 @@ class TestQuestionnaire(TestCase):
 
         data = json.loads(response.data)
 
-        print(data["questions"])
+        assert "start_time" in data
 
         assert len(data["questions"]) == 36
 
@@ -134,6 +135,7 @@ class TestQuestionnaire(TestCase):
         data = json.loads(response.data)
 
         assert "questions" in data
+        assert "start_time" in data
 
         # give dummy answers to each question depending on type
         questions = data["questions"]
@@ -152,7 +154,13 @@ class TestQuestionnaire(TestCase):
             questions[i] = q
 
         description = "Test description"
-        payload = json.dumps({"questions": questions, "description": description})
+        payload = json.dumps(
+            {
+                "questions": questions,
+                "description": description,
+                "start_time": data["start_time"],
+            }
+        )
 
         response = self.app.post(
             "/questionnaire/after",
@@ -184,6 +192,9 @@ class TestQuestionnaire(TestCase):
             == 36
         )
 
+        # check that start time is less than completion time
+        assert questionnaire.start_time < questionnaire.completion_time
+
         # check the description is correct
         assert questionnaire.description == "Test description"
 
@@ -207,6 +218,7 @@ class TestQuestionnaire(TestCase):
 
         data = json.loads(response.data)
         assert len(data["questions"]) == 4
+        assert "start_time" in data
 
         # check the questions
         assert data["questions"][0]["name"] == "DP_1-1"
@@ -232,8 +244,12 @@ class TestQuestionnaire(TestCase):
         data = json.loads(response.data)
         # should be one less than with iteration = 1
         assert len(data["questions"]) == 3
+        assert "start_time" in data
 
         # check questions
         assert data["questions"][0]["name"] == "GP_1-3"
         assert data["questions"][1]["name"] == "LP_3-3"
         assert data["questions"][2]["name"] == "LP_4-1"
+
+    def test_post_questionnaire(self):
+        pass

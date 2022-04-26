@@ -20,6 +20,12 @@ after_solution_parser.add_argument(
     help="Description of the context of the questionnaire.",
     required=True,
 )
+after_solution_parser.add_argument(
+    "start_time",
+    type=str,
+    help="The time the questionnarie was fetched. Example: '2022-04-26 11:22:19.329055'",
+    required=True,
+)
 
 during_solution_get_parser = reqparse.RequestParser()
 during_solution_get_parser.add_argument(
@@ -34,6 +40,12 @@ during_solution_post_parser.add_argument(
     "iteration",
     type=int,
     help="The number of the last completed iteration.",
+    required=True,
+)
+during_solution_post_parser.add_argument(
+    "start_time",
+    type=str,
+    help="The time the questionnarie was fetched. Example: '2022-04-26 11:22:19.329055'",
     required=True,
 )
 
@@ -214,7 +226,7 @@ class QuestionnaireAfterSolutionProcess(Resource):
         )
         questions.append(create_open("X-2-open", "Please describe why?"))
 
-        return {"questions": questions}, 200
+        return {"questions": questions, "start_time": str(datetime.datetime.now())}, 200
 
     @jwt_required()
     def post(self):
@@ -225,6 +237,7 @@ class QuestionnaireAfterSolutionProcess(Resource):
 
         questions = data["questions"]
         description = data["description"]
+        start_time = data["start_time"]
 
         try:
             # create questionnaire to store answers to and add it to the DB
@@ -232,7 +245,8 @@ class QuestionnaireAfterSolutionProcess(Resource):
                 user_id=current_user_id,
                 name="After optimization process",
                 description=description,
-                date=datetime.datetime.now(),
+                completion_time=datetime.datetime.now(),
+                start_time=datetime.datetime.fromisoformat(start_time),
             )
             db.session.add(questionnaire)
             db.session.commit()
@@ -303,25 +317,28 @@ class QuestionnaireDuringSolutionProcess(Resource):
             )
         )
 
-        return {"questions": questions}, 200
+        return {"questions": questions, "start_time": str(datetime.datetime.now())}, 200
 
     @jwt_required()
     def post(self):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
 
-        data = after_solution_parser.parse_args()
+        data = during_solution_post_parser.parse_args()
 
+        iteration = data["iteration"]
         questions = data["questions"]
         description = data["description"]
+        start_time = data["start_time"]
 
         try:
             # create questionnaire to store answers to and add it to the DB
             questionnaire = Questionnaire(
                 user_id=current_user_id,
-                name="After optimization process",
+                name=f"After iteration{iteration}.",
                 description=description,
-                date=datetime.datetime.now(),
+                start_time=datetime.datetime.fromisoformat(start_time),
+                completion_time=datetime.datetime.now(),
             )
             db.session.add(questionnaire)
             db.session.commit()
