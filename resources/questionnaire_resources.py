@@ -27,14 +27,6 @@ after_solution_parser.add_argument(
     required=True,
 )
 
-during_solution_get_parser = reqparse.RequestParser()
-during_solution_get_parser.add_argument(
-    "iteration",
-    type=int,
-    help="The number of the last completed iteration.",
-    required=True,
-)
-
 during_solution_post_parser = after_solution_parser.copy()
 during_solution_post_parser.add_argument(
     "iteration",
@@ -286,13 +278,10 @@ class QuestionnaireAfterSolutionProcess(Resource):
 
 class QuestionnaireDuringSolutionProcess(Resource):
     @jwt_required()
-    def get(self):
-        data = during_solution_get_parser.parse_args()
-        iteration = data["iteration"]
-
+    def _get(self, first=False):
         questions = []
 
-        if iteration == 1:
+        if first:
             questions.append(
                 create_likert(
                     "DP_1-1", "The preference information was easy to provide."
@@ -318,6 +307,10 @@ class QuestionnaireDuringSolutionProcess(Resource):
         )
 
         return {"questions": questions, "start_time": str(datetime.datetime.now())}, 200
+
+    @jwt_required()
+    def get(self):
+        return self._get()
 
     @jwt_required()
     def post(self):
@@ -374,3 +367,8 @@ class QuestionnaireDuringSolutionProcess(Resource):
         return {
             "message": "Answers parsed and added to the database successfully!"
         }, 200
+
+class QuestionnaireDuringSolutionProcessFirstIteration(QuestionnaireDuringSolutionProcess):
+    @jwt_required()
+    def get(self):
+        return self._get(first=True)
