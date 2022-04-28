@@ -284,7 +284,7 @@ class QuestionnaireDuringSolutionProcess(Resource):
         if first:
             questions.append(
                 create_likert(
-                    "DP_1-1", "The preference information was easy to provide."
+                    "GP_1-1", "The preference information was easy to provide."
                 )
             )
 

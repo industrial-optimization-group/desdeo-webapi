@@ -236,7 +236,7 @@ class TestQuestionnaire(TestCase):
         assert "start_time" in data
 
         # check the questions
-        assert data["questions"][0]["name"] == "DP_1-1"
+        assert data["questions"][0]["name"] == "GP_1-1"
         assert data["questions"][1]["name"] == "GP_1-3"
         assert data["questions"][2]["name"] == "LP_3-3"
         assert data["questions"][3]["name"] == "LP_4-1"

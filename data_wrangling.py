@@ -35,10 +35,21 @@ if __name__ == "__main__":
     # get all questionnaire entries
     q_entries = db.session.query(Questionnaire).filter_by(user_id=user_id).order_by("start_time").all()
 
+    qasl = []
+
+    # TODO: ADD TIME STAMPS!!!!
     for q in q_entries:
-        for l in q.questions_likert:
-            print(l.name)
-        for o in q.questions_open:
-            print(o.name)
+        qas = {"Questionnaire name": q.name} 
+        for lq in q.questions_likert:
+            qas[lq.name] = lq.answer
+        for oq in q.questions_open:
+            qas[oq.name] = oq.answer
+
+        qasl.append(qas)
+
+    qas_df = pd.DataFrame(qasl)
+
+    # qas_df.to_excel("qas.xlsx")
+        
 
         
