@@ -328,7 +328,7 @@ class QuestionnaireDuringSolutionProcess(Resource):
             # create questionnaire to store answers to and add it to the DB
             questionnaire = Questionnaire(
                 user_id=current_user_id,
-                name=f"After iteration{iteration}.",
+                name=f"After iteration {iteration}.",
                 description=description,
                 start_time=datetime.datetime.fromisoformat(start_time),
                 completion_time=datetime.datetime.now(),
