@@ -2,6 +2,8 @@ from app import db
 
 import datetime
 
+import ast
+
 import pandas as pd
 
 from models.user_models import UserModel
@@ -25,12 +27,12 @@ if __name__ == "__main__":
         "timestamp": [str(log.timestamp) for log in log_entries],
         "entry_type": [log.entry_type for log in log_entries],
         "info": [log.info for log in log_entries],
-        "data": [log.data for log in log_entries]
+        "data": [ast.literal_eval(log.data.replace("true", "True").replace("false", "False")) if log.data else None for log in log_entries]
     }
 
     logs_df = pd.DataFrame(logs)
 
-    # logs_df.to_excel("logs.xlsx")
+    logs_df.to_excel("logs.xlsx")
 
     # get all questionnaire entries
     q_entries = db.session.query(Questionnaire).filter_by(user_id=user_id).order_by("start_time").all()
@@ -53,4 +55,4 @@ if __name__ == "__main__":
 
     qas_df = pd.DataFrame(qasl)
 
-    # qas_df.to_excel("qas.xlsx")
+    qas_df.to_excel("qas.xlsx")
