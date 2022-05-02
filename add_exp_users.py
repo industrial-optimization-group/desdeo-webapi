@@ -69,7 +69,7 @@ def add_sus_problem(username):
     else:
         id = user_query.id
 
-    file_name = "./tests/data/testPF_3f_11x_max_named.csv"
+    file_name = "./tests/data/sustainability_spanish.csv"
 
     data = pd.read_csv(file_name)
     # minus because all are to be maximized
@@ -88,7 +88,7 @@ def add_sus_problem(username):
 
     db.session.add(
         ProblemModel(
-            name="Sustainability problem",
+            name="Spanish sustainability problem",
             problem_type="Discrete",
             problem_pickle=problem,
             user_id=id,
