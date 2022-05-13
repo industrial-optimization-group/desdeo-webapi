@@ -78,6 +78,7 @@ api.add_resource(
 api.add_resource(
     questionnaire_resources.QuestionnaireDuringSolutionProcessFirstIteration, "/questionnaire/during/first"
 )
+api.add_resource(questionnaire_resources.QuestionnaireDuringSolutionProcessAfterNew, "/questionnaire/during/new")
 
 # Add archive endpoint
 api.add_resource(solution_archive_resources.Archive, "/archive")

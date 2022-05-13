@@ -27,7 +27,7 @@ if __name__ == "__main__":
         "timestamp": [str(log.timestamp) for log in log_entries],
         "entry_type": [log.entry_type for log in log_entries],
         "info": [log.info for log in log_entries],
-        "data": [ast.literal_eval(log.data.replace("true", "True").replace("false", "False").replace("\n", " ")) if log.data else None for log in log_entries]
+        "data": [ast.literal_eval(log.data.replace("true", "True").replace("false", "False")) if log.data else None for log in log_entries]
     }
 
     logs_df = pd.DataFrame(logs)

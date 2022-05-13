@@ -278,39 +278,44 @@ class QuestionnaireAfterSolutionProcess(Resource):
 
 class QuestionnaireDuringSolutionProcess(Resource):
     @jwt_required()
-    def _get(self, first=False):
+    def _get(self, first=False, when="after_iteration"):
         questions = []
 
-        if first:
+        if when == "after_iteration":
+            if first:
+                questions.append(
+                    create_likert(
+                        "GP_1-1", "The preference information was easy to provide."
+                    )
+                )
+
             questions.append(
-                create_likert(
-                    "GP_1-1", "The preference information was easy to provide."
+                create_open(
+                    "GP_1-3",
+                    "What do you wish to achieve by providing this preference information?",
                 )
             )
 
-        questions.append(
-            create_open(
-                "GP_1-3",
-                "What do you wish to achieve by providing this preference information?",
+        elif when == "after_show_new":
+            questions.append(
+                create_likert(
+                    "LP_3-3",
+                    "The solution I obtained reflects my preference information well.",
+                )
             )
-        )
-        questions.append(
-            create_likert(
-                "LP_3-3",
-                "The solution I obtained reflects my preference information well.",
+            questions.append(
+                create_likert(
+                    "LP_4-1", "After this iteration, I know more about the problem."
+                )
             )
-        )
-        questions.append(
-            create_likert(
-                "LP_4-1", "After this iteration, I know more about the problem."
-            )
-        )
+        else:
+            return {"message": f"Unsupporeted questinnaire type '{when}' given."}, 404
 
         return {"questions": questions, "start_time": str(datetime.datetime.now())}, 200
 
     @jwt_required()
     def get(self):
-        return self._get()
+        return self._get(first=False, when="after_iteration")
 
     @jwt_required()
     def post(self):
@@ -371,4 +376,9 @@ class QuestionnaireDuringSolutionProcess(Resource):
 class QuestionnaireDuringSolutionProcessFirstIteration(QuestionnaireDuringSolutionProcess):
     @jwt_required()
     def get(self):
-        return self._get(first=True)
+        return self._get(first=True, when="after_iteration")
+
+class QuestionnaireDuringSolutionProcessAfterNew(QuestionnaireDuringSolutionProcess):
+    @jwt_required()
+    def get(self):
+        return self._get(first=False, when="after_show_new")

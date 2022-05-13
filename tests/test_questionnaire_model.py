@@ -211,13 +211,11 @@ class TestQuestionnaire(TestCase):
         assert response.status_code == 200
 
         data = json.loads(response.data)
-        assert len(data["questions"]) == 3
+        assert len(data["questions"]) == 1
         assert "start_time" in data
 
         # check the questions
         assert data["questions"][0]["name"] == "GP_1-3"
-        assert data["questions"][1]["name"] == "LP_3-3"
-        assert data["questions"][2]["name"] == "LP_4-1"
 
     def test_get_questionnaire_during_first(self):
         access_token = self.login()
@@ -232,14 +230,32 @@ class TestQuestionnaire(TestCase):
         assert response.status_code == 200
 
         data = json.loads(response.data)
-        assert len(data["questions"]) == 4
+        assert len(data["questions"]) == 2
         assert "start_time" in data
 
         # check the questions
         assert data["questions"][0]["name"] == "GP_1-1"
         assert data["questions"][1]["name"] == "GP_1-3"
-        assert data["questions"][2]["name"] == "LP_3-3"
-        assert data["questions"][3]["name"] == "LP_4-1"
+
+    def test_get_questionnaire_during_after_new(self):
+        access_token = self.login()
+
+        response = self.app.get(
+            "/questionnaire/during/new",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+            }
+        )
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+        assert len(data["questions"]) == 2
+        assert "start_time" in data
+
+        # check the questions
+        assert data["questions"][0]["name"] == "LP_3-3"
+        assert data["questions"][1]["name"] == "LP_4-1"
 
     def test_post_questionnaire(self):
         access_token = self.login()
@@ -258,7 +274,7 @@ class TestQuestionnaire(TestCase):
         assert response.status_code == 200
 
         data = json.loads(response.data)
-        assert len(data["questions"]) == 4
+        assert len(data["questions"]) == 2
         assert "start_time" in data
 
         # answer the questions
@@ -266,8 +282,6 @@ class TestQuestionnaire(TestCase):
 
         questions[0]["answer"] = 5
         questions[1]["answer"] = "A nice solution."
-        questions[2]["answer"] = 4
-        questions[3]["answer"] = 6
 
         description = "Testing"
         payload = json.dumps(
@@ -297,7 +311,7 @@ class TestQuestionnaire(TestCase):
 
         # check likert and differential questions
         for ql in questionnaire.questions_likert:
-            assert ql.answer in [5, 4, 6]
+            assert ql.answer in [5]
 
         # check open questions
         for qo in questionnaire.questions_open:
