@@ -11,7 +11,7 @@ CORS(app)
 
 api = Api(app)
 
-ACCESS_EXPIRES = timedelta(hours=1)
+ACCESS_EXPIRES = timedelta(hours=2)
 app.config["PROPAGATE_EXCEPTIONS"] = True
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False

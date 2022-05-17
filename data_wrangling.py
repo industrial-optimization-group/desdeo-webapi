@@ -15,8 +15,9 @@ if __name__ == "__main__":
     users = db.session.query(UserModel).all()
 
     # select first user
-    first_user = users[0]
+    first_user = users[1]
     user_id = first_user.id
+    username = first_user.username
 
     # get all log entries
     log_entries = db.session.query(LogEntry).filter_by(user_id=user_id).order_by("timestamp").all()
@@ -32,7 +33,7 @@ if __name__ == "__main__":
 
     logs_df = pd.DataFrame(logs)
 
-    logs_df.to_excel("logs_user1.xlsx")
+    logs_df.to_excel(f"./logs/logs_{username}.xlsx")
 
     # get all questionnaire entries
     q_entries = db.session.query(Questionnaire).filter_by(user_id=user_id).order_by("start_time").all()
@@ -55,4 +56,4 @@ if __name__ == "__main__":
 
     qas_df = pd.DataFrame(qasl)
 
-    qas_df.to_excel("qas_user1.xlsx")
+    qas_df.to_excel(f"./logs/qas_{username}.xlsx")
