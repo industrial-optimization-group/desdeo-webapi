@@ -19,9 +19,6 @@ from models.user_models import UserModel
 parser = argparse.ArgumentParser(
     description="Add N new user to the database with a pre-defined problem. and a given username prefix."
 )
-parser.add_argument(
-    "--username", type=str, help="The username prefix to be be used when adding new users.", required=True
-)
 parser.add_argument("--N", type=int, help="The number of usernames to be added.", required=True)
 
 dill.settings["recurse"] = True
@@ -35,11 +32,11 @@ args = vars(parser.parse_args())
 def main():
     letters = string.ascii_lowercase
     args = vars(parser.parse_args())
-    usernames = [args["username"] + str(i) for i in range(1, args["N"] + 1)]
-    passwords = [("".join(random.choice(letters) for i in range(6))) for j in range(args["N"])]
+    methods = ["rpm", "nimbus", "enautilus"]
+    usernames = [[f"{method}_{n}" for n in range(1, args["N"]+1)] for method in methods]
+    usernames = sum(usernames, [])
+    passwords = [("".join(random.choice(letters) for i in range(6))) for j in range(len(usernames))]
 
-    print(usernames)
-    print(passwords)
     try:
         for (username, password) in zip(usernames, passwords):
             add_user(username, password)
