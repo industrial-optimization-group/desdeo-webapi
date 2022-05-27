@@ -14,46 +14,52 @@ if __name__ == "__main__":
     # get all user names
     users = db.session.query(UserModel).all()
 
-    # select first user
-    first_user = users[1]
-    user_id = first_user.id
-    username = first_user.username
+    n_users = 30
 
-    # get all log entries
-    log_entries = db.session.query(LogEntry).filter_by(user_id=user_id).order_by("timestamp").all()
+    for i in range(n_users):
+        # select first user
+        first_user = users[i]
+        user_id = first_user.id
+        username = first_user.username
 
-    logs_df = pd.DataFrame([], columns=["timestamp", "entry_type", "info", "data"])
+        if username == "enautilus_2":
+            continue
 
-    logs = {
-        "timestamp": [str(log.timestamp) for log in log_entries],
-        "entry_type": [log.entry_type for log in log_entries],
-        "info": [log.info for log in log_entries],
-        "data": [ast.literal_eval(log.data.replace("true", "True").replace("false", "False")) if log.data else None for log in log_entries]
-    }
+        # get all log entries
+        log_entries = db.session.query(LogEntry).filter_by(user_id=user_id).order_by("timestamp").all()
 
-    logs_df = pd.DataFrame(logs)
+        logs_df = pd.DataFrame([], columns=["timestamp", "entry_type", "info", "data"])
 
-    logs_df.to_excel(f"./logs/logs_{username}.xlsx")
+        logs = {
+            "timestamp": [str(log.timestamp) for log in log_entries],
+            "entry_type": [log.entry_type for log in log_entries],
+            "info": [log.info for log in log_entries],
+            "data": [ast.literal_eval(log.data.replace("true", "True").replace("false", "False")) if log.data else None for log in log_entries]
+        }
 
-    # get all questionnaire entries
-    q_entries = db.session.query(Questionnaire).filter_by(user_id=user_id).order_by("start_time").all()
+        logs_df = pd.DataFrame(logs)
 
-    qasl = []
+        logs_df.to_excel(f"./logs/{username}_logs.xlsx")
 
-    for q in q_entries:
-        elapsed_time = round((q.completion_time - q.start_time).total_seconds(), 2)
-        qas = {"Questionnaire name": q.name} 
-        qas["description"] = q.description
-        qas["start_time"] = q.start_time
-        qas["completion_time"] = q.completion_time
-        qas["time_elapsed"] = elapsed_time
-        for lq in q.questions_likert:
-            qas[lq.name] = lq.answer
-        for oq in q.questions_open:
-            qas[oq.name] = oq.answer
+        # get all questionnaire entries
+        q_entries = db.session.query(Questionnaire).filter_by(user_id=user_id).order_by("start_time").all()
 
-        qasl.append(qas)
+        qasl = []
 
-    qas_df = pd.DataFrame(qasl)
+        for q in q_entries:
+            elapsed_time = round((q.completion_time - q.start_time).total_seconds(), 2)
+            qas = {"Questionnaire name": q.name} 
+            qas["description"] = q.description
+            qas["start_time"] = q.start_time
+            qas["completion_time"] = q.completion_time
+            qas["time_elapsed"] = elapsed_time
+            for lq in q.questions_likert:
+                qas[lq.name] = lq.answer
+            for oq in q.questions_open:
+                qas[oq.name] = oq.answer
 
-    qas_df.to_excel(f"./logs/qas_{username}.xlsx")
+            qasl.append(qas)
+
+        qas_df = pd.DataFrame(qasl)
+
+        qas_df.to_excel(f"./logs/{username}_answers.xlsx")
