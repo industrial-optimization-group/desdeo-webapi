@@ -66,27 +66,27 @@ class QuestionnaireAfterSolutionProcess(Resource):
 
         questions.append(create_open("DP_1-1", "Why did you stop iterating?"))
         questions.append(
-            create_likert("DP_1-4", "I am satisfied with the final solution")
+            create_likert("DP_1-4", "I am satisfied with the final solution.")
         )
         questions.append(
-            create_likert("LP_4-5", "I think that the solution I found is the best one")
+            create_likert("LP_4-5", "I think that the solution I found is the best one.")
         )
         questions.append(
             create_differential(
                 "LP_4-2-1",
-                "What degree of conflict do you think exists among the pair of objectives 'f1' and 'f2'?",
+                "What degree of conflict do you think exists among the pair of objectives 'f1' (social) and 'f2' (economic)?",
             )
         )
         questions.append(
             create_differential(
                 "LP_4-2-2",
-                "What degree of conflict do you think exists among the pair of objectives 'f1' and 'f3'?",
+                "What degree of conflict do you think exists among the pair of objectives 'f1' (social) and 'f3' (environmental)?",
             )
         )
         questions.append(
             create_differential(
                 "LP_4-2-3",
-                "What degree of conflict do you think exists among the pair of objectives 'f2' and 'f3'?",
+                "What degree of conflict do you think exists among the pair of objectives 'f2' (economic) and 'f3' (environmental)?",
             )
         )
         questions.append(
@@ -99,7 +99,7 @@ class QuestionnaireAfterSolutionProcess(Resource):
         questions.append(
             create_likert(
                 "LP_3-2",
-                "It was easy to explore solutions with different conflicting values of the objective functions",
+                "It was easy to explore solutions with different conflicting values of the objective functions.",
             )
         )
         questions.append(
@@ -214,7 +214,7 @@ class QuestionnaireAfterSolutionProcess(Resource):
         )
         questions.append(create_open("X-1-open", "Please describe why?"))
         questions.append(
-            create_likert("X-2-likert", "The problem was important for the to solve.")
+            create_likert("X-2-likert", "The problem was important for me to solve.")
         )
         questions.append(create_open("X-2-open", "Please describe why?"))
 
@@ -300,7 +300,7 @@ class QuestionnaireDuringSolutionProcess(Resource):
             questions.append(
                 create_likert(
                     "LP_3-3",
-                    "The solution I obtained reflects my preference information well.",
+                    "The solutions I obtained reflect my preference information well.",
                 )
             )
             questions.append(
