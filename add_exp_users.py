@@ -126,13 +126,11 @@ def add_cat_problem(username):
 
     # data assumed to be already in minimization format, so no transformation
     data = pd.read_csv(file_name)
-    data[["activity_playfulness", "cat_sociability", "human_sociability"]] = -data[["activity_playfulness", "cat_sociability", "human_sociability"]]
-
 
     ideal = data[["fearfulness", "human_aggression", "activity_playfulness", "cat_sociability", "human_sociability", "litterbox_issues", "excessive_grooming"]].min().values
     nadir = data[["fearfulness", "human_aggression", "activity_playfulness", "cat_sociability", "human_sociability", "litterbox_issues", "excessive_grooming"]].max().values
 
-    # define the sus problem
+    # define the cat problem
     var_names = ["BREEDGROUP"]
     obj_names = ["fearfulness", "human_aggression", "activity_playfulness", "cat_sociability", "human_sociability", "litterbox_issues", "excessive_grooming"]
 
