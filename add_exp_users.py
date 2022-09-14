@@ -24,7 +24,7 @@ parser.add_argument(
 )
 parser.add_argument("--N", type=int, help="The number of usernames to be added.", required=True)
 
-parser.add_argument("--problem", type=str, help="The problem type, either 'sus' or 'cat'.")
+parser.add_argument("--problem", type=str, help="The problem type, either 'sus', 'cat', 'dog' or 'catdog'.")
 
 dill.settings["recurse"] = True
 
@@ -39,7 +39,7 @@ def main():
     args = vars(parser.parse_args())
 
     # Check problem type is correct
-    if args["problem"] not in ["sus", "cat"]:
+    if args["problem"] not in ["sus", "cat", "dog", "catdog"]:
         print(f"Unsupported problem type {args['problem']} Aborting...")
         exit()
 
@@ -56,6 +56,11 @@ def main():
                 add_sus_problem(username)
             elif args["problem"] == "cat":
                 add_cat_problem(username)
+            elif args["problem"] == "dog":
+                add_dog_problem(username)
+            elif args["problem"] == "catdog":
+                add_cat_problem(username)
+                add_dog_problem(username)
             else:
                 print(f"Unsupported problem type {args['problem']} Aborting...")
                 exit()
@@ -147,6 +152,44 @@ def add_cat_problem(username):
     )
     db.session.commit()
     print(f"Ideal cat breed problem added for user '{username}'")
+
+
+def add_dog_problem(username):
+    user_query = UserModel.query.filter_by(username=username).first()
+    if user_query is None:
+        print(f"USername {username} not found")
+        return
+    else:
+        id = user_query.id
+
+    file_name = "./tests/data/pf_dog_data.csv"
+
+    # data assumed to be already in minimization format, so no transformation
+    data = pd.read_csv(file_name)
+
+    obj_names = ["insecurity_score", "training_focus_score", "activity_playfulness_score", "aggressiveness_dominance_score", "human_sociability_score", "dog_sociability_score", "perseverance_score"]
+    directions = [1, -1, -1, 1, -1, -1, -1]
+
+    ideal = data[obj_names].min().values
+    nadir = data[obj_names].max().values
+
+    # define the cat problem
+    var_names = ["breed_group"]
+
+    problem = DiscreteDataProblem(data, var_names, obj_names, ideal, nadir)
+
+    db.session.add(
+        ProblemModel(
+            name="Ideal dog breed problem",
+            problem_type="Discrete",
+            problem_pickle=problem,
+            user_id=id,
+            minimize=json.dumps(directions),
+        )
+    )
+    db.session.commit()
+    print(f"Ideal dog breed problem added for user '{username}'")
+
 
 
 if __name__ == "__main__":
