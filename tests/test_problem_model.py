@@ -6,7 +6,8 @@ import numpy as np
 import numpy.testing as npt
 import pandas as pd
 import pytest
-from app import app, db
+from app import app
+from database import db
 from desdeo_problem.problem import DiscreteDataProblem
 from flask_testing import TestCase
 from models.problem_models import Problem, SolutionArchive
@@ -25,6 +26,7 @@ class TestAnalyticalProblem(TestCase):
         return app
 
     def setUp(self):
+        db.drop_all()
         db.create_all()
         self.app = app.test_client()
 

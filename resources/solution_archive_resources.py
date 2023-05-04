@@ -1,4 +1,4 @@
-from app import db
+from database import db
 
 from copy import deepcopy
 import datetime

@@ -5,23 +5,23 @@ description = ""
 authors = ["Giovanni Misitano <giovanni.a.misitano@jyu.fi>"]
 
 [tool.poetry.dependencies]
-python = ">=3.7.1, < 3.10"
-Flask = "^2.0"
+python = ">=3.9, < 3.11"
+Flask = "^2.2"
 requests = "^2.25.1"
 Flask-JWT-Extended = "^4.0.2"
-Flask-SQLAlchemy = "^2.4.4"
+Flask-SQLAlchemy = ">=3.0.2"
 passlib = "^1.7.4"
-dill = "^0.3.3"
+dill = {git = "https://github.com/uqfoundation/dill" , branch = "master" }
 sympy = "^1.7.1"
 Flask-Cors = "^3.0.10"
 desdeo-problem = "^1.3.3"
 desdeo-mcdm = "^1.2.13"
-flask-restx = "^0.5.0"
+flask-restx = "^1.0.0"
 pandas = "^1.3.1"
 simplejson = "^3.17.3"
 desdeo-emo = "^1.3.3"
 openpyxl = "^3.0.9"
-Werkzeug = "2.1.2"
+Werkzeug = ">=2.2"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"

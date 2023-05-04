@@ -1,4 +1,4 @@
-from app import db
+from database import db
 from sqlalchemy.orm import validates
 
 log_entry_types = ["Intermediate solution", "Final solution", "Preference", "Info"]

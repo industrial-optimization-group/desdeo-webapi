@@ -1,5 +1,5 @@
 import dill
-from app import db
+from database import db
 from sqlalchemy.orm import validates
 
 # to be able to serialize lambdified expressions returned by SymPy

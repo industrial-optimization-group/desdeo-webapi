@@ -4,7 +4,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_restx import Api
-from flask_sqlalchemy import SQLAlchemy
+from database import db
 
 app = Flask(__name__)
 CORS(app)
@@ -23,11 +23,11 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = ACCESS_EXPIRES
 
 jwt = JWTManager(app)
 
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
+db.init_app(app)
 
 
-@app.before_first_request
-def create_tables():
+with app.app_context():
     db.create_all()
 
 

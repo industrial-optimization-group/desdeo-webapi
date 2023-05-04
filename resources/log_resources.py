@@ -1,4 +1,4 @@
-from app import db
+from database import db
 import datetime
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse

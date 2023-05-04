@@ -1,5 +1,5 @@
 import dill
-from app import db
+from database import db
 
 # to be able to serialize lambdified expressions returned by SymPy
 # This might break some serializations!

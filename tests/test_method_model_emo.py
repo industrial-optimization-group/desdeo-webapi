@@ -4,7 +4,8 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 import simplejson as json
-from app import app, db
+from app import app
+from database import db
 from desdeo_problem.testproblems import test_problem_builder as problem_builder
 from desdeo_emo.EAs import RVEA, IOPIS_NSGAIII
 from desdeo_tools.interaction import (
@@ -31,6 +32,7 @@ class TestMethod(TestCase):
         return app
 
     def setUp(self):
+        db.drop_all()
         db.create_all()
         self.app = app.test_client()
 
@@ -100,7 +102,7 @@ class TestMethod(TestCase):
         # check method properly in DB
         method = Method.query.filter_by(user_id=user_id).first().method_pickle
 
-        assert isinstance(method, RVEA)
+        assert type(method).__name__ == RVEA.__name__
 
         # check it is interactive
         assert method.interact  # True
