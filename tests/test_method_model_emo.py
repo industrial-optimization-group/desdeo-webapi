@@ -146,10 +146,11 @@ class TestMethod(TestCase):
         # Check the status types in the database method object
         last_request = method_q.last_request
 
-        assert isinstance(last_request[0], PreferredSolutionPreference)
-        assert isinstance(last_request[1], NonPreferredSolutionPreference)
-        assert isinstance(last_request[2], ReferencePointPreference)
-        assert isinstance(last_request[3], BoundPreference)
+        #assert isinstance(last_request[0], PreferredSolutionPreference)
+        #assert isinstance(last_request[1], NonPreferredSolutionPreference)
+        #assert isinstance(last_request[2], ReferencePointPreference)
+        #assert isinstance(last_request[3], BoundPreference)
+        assert last_request.request_type == "reference_point_preference"
 
     def testIterateIRVEA(self):
         access_token = self.login()
@@ -185,7 +186,7 @@ class TestMethod(TestCase):
 
         # Iterate with no preferences
         preference_type = 0
-        response = iterate([np.nan], preference_type)
+        response = iterate(0, preference_type)
 
         # OK
         assert response.status_code == 200

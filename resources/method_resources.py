@@ -380,7 +380,6 @@ class MethodControl(Resource):
             method_query.last_request = new_request
             db.session.commit()
         except Exception as e:
-            raise e
             print(f"DEBUG: {e}")
             # error, could not iterate, internal server error
             if isinstance(last_request, tuple):
@@ -443,9 +442,11 @@ class MethodControl(Resource):
 
 def EAControlGet(method):
     if type(method.population.problem).__name__ ==  IOPISProblem.__name__:
+        method.set_interaction_type('Reference point')
         request = method.start()[0]
         """contents = [json.dumps(r, cls=NumpyEncoder, ignore_nan=True) for r in request]"""
     else:
+        method.set_interaction_type('Reference point')
         request = method.start()[0]
         """contents = [
             json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request
