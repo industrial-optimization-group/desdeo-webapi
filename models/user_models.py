@@ -8,7 +8,7 @@ class GuestUserModel(db.Model):
     __tablename__ = "guest"
     id = db.Column(db.Integer, primary_key=True, unique=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
-    problems = db.relationship("Problem", backref="owner", lazy=True)
+    problems = db.relationship("GuestProblem", backref="owner", lazy=True)
     
     def __repr__(self):
         return f"Guest: ('{self.username}')"
