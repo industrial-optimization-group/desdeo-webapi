@@ -14,7 +14,7 @@ from desdeo_tools.scalarization import AUG_GUESS_GLIDE, AUG_STOM_GLIDE
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.problem_models import Problem
-from models.user_models import UserModel
+from models.user_models import UserModel, role_required, USER_ROLE
 from utilities.expression_parser import numpify_expressions
 
 # The vailable problem types
@@ -155,6 +155,7 @@ problem_access_parser.add_argument(
 
 class ProblemAccess(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
@@ -180,6 +181,7 @@ class ProblemAccess(Resource):
             return {"message": "Could not fetch problems!"}, 404
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         """Fetch a problem from the DB with a given id 'problem_id'.
 
@@ -253,6 +255,7 @@ class ProblemAccess(Resource):
 
 class ProblemCreation(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         """Return the names of the available problem types that may be defined.
 
@@ -268,6 +271,7 @@ class ProblemCreation(Resource):
         return response, 200
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         """Specify and add a problem to the DB.
 

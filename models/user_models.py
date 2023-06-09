@@ -1,6 +1,24 @@
 from database import db
 from passlib.hash import pbkdf2_sha256 as sha256
 
+from functools import wraps
+
+from flask_jwt_extended import get_jwt
+
+USER_ROLE = "user"
+GUEST_ROLE = "guest"
+
+def role_required(role):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            claims = get_jwt()
+            if claims['role'] != role:
+                return {"message": "Access denied"}, 403
+            else:
+                return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 class GuestUserModel(db.Model):
     """this model describes a guest user account with no password and no possibility to store anything on the database.

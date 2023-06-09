@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 import random
 import string
+from functools import wraps
 
 from database import db
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
-from models.user_models import TokenBlocklist, UserModel, GuestUserModel
+from models.user_models import TokenBlocklist, UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
 
 user_parse = reqparse.RequestParser()
 user_parse.add_argument("username", help="The username is required", required=True)
@@ -27,7 +28,9 @@ class GuestCreate(Resource):
         try:
             db.session.add(new_guest)
             db.session.commit()
-            access_token = create_access_token(username)
+
+            additional_claims = {"role": GUEST_ROLE}
+            access_token = create_access_token(username, additional_claims=additional_claims)
             refresh_token = create_refresh_token(username)
         except Exception as e:
             return {"message": "Could not add new guest to database"}, 500
@@ -50,7 +53,8 @@ class UserRegistration(Resource):
         new_user = UserModel(username=data["username"], password=UserModel.generate_hash(data["password"]))
         try:
             new_user.save_to_db()
-            access_token = create_access_token(identity=data["username"])
+            additional_claims = {"role": USER_ROLE}
+            access_token = create_access_token(identity=data["username"], additional_claims=additional_claims)
             refresh_token = create_refresh_token(identity=data["username"])
             return {
                 "message": f"User {data['username']} was created!",
@@ -72,7 +76,8 @@ class UserLogin(Resource):
 
         try:
             if UserModel.verify_hash(data["password"], current_user.password):
-                access_token = create_access_token(identity=data["username"])
+                additional_claims = {"role": USER_ROLE}
+                access_token = create_access_token(identity=data["username"], additional_claims=additional_claims)
                 refresh_token = create_refresh_token(identity=data["username"])
                 return {
                     "message": f"Logged as {current_user.username}",
@@ -89,11 +94,12 @@ class UserLogin(Resource):
 
 class UserLogoutAccess(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         try:
-            jti = get_jwt()["jti"]
+            claims = get_jwt()
             now = datetime.now(timezone.utc)
-            db.session.add(TokenBlocklist(jti=jti, created_at=now))
+            db.session.add(TokenBlocklist(jti=claims["jti"], created_at=now))
             db.session.commit()
             return {"message": "Access token revoked"}, 200
         except Exception as e:
@@ -105,7 +111,8 @@ class UserLogoutRefresh(Resource):
     @jwt_required(refresh=True)
     def post(self):
         try:
-            jti = get_jwt()["jti"]
+            claims = get_jwt()
+            jti = claims["jti"]
             now = datetime.now(timezone.utc)
             db.session.add(TokenBlocklist(jti=jti, created_at=now))
             db.session.commit()
@@ -119,7 +126,8 @@ class TokenRefresh(Resource):
     @jwt_required(refresh=True)
     def post(self):
         current_user = get_jwt_identity()
-        access_token = create_access_token(identity=current_user)
+        additional_claims = {"role": USER_ROLE}
+        access_token = create_access_token(identity=current_user, additional_claims=additional_claims)
         return {"access_token": access_token}
 
 
@@ -134,5 +142,6 @@ class AllUsers(Resource):
 class SecretResource(Resource):
     """Used for testing."""
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         return {"answer": 42}

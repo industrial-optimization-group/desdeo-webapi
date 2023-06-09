@@ -17,7 +17,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.method_models import Method
 from models.problem_models import Problem
-from models.user_models import UserModel
+from models.user_models import UserModel, role_required, USER_ROLE
 from utilities.expression_parser import NumpyEncoder, numpify_dict_items
 import pandas as pd
 import numpy as np
@@ -70,6 +70,7 @@ method_control_parser.add_argument(
 
 class MethodCreate(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
@@ -83,6 +84,7 @@ class MethodCreate(Resource):
         return {"message": "Method found!"}, 200
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         data = method_create_parser.parse_args()
 
@@ -206,6 +208,7 @@ class MethodCreate(Resource):
 
 class MethodControl(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
@@ -265,6 +268,7 @@ class MethodControl(Resource):
         return return_message
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         data = method_control_parser.parse_args()
         user_response_raw = data["response"]

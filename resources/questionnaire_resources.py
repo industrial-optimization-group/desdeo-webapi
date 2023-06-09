@@ -3,7 +3,7 @@ import datetime
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.questionnaire_models import QuestionLikert, QuestionOpen, Questionnaire
-from models.user_models import UserModel
+from models.user_models import UserModel, role_required, USER_ROLE
 import simplejson as json
 
 after_solution_parser = reqparse.RequestParser()
@@ -61,6 +61,7 @@ def create_open(name: str, question_txt: str):
 
 class QuestionnaireAfterSolutionProcess(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         questions = []
 
@@ -221,6 +222,7 @@ class QuestionnaireAfterSolutionProcess(Resource):
         return {"questions": questions, "start_time": str(datetime.datetime.now())}, 200
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
@@ -278,6 +280,7 @@ class QuestionnaireAfterSolutionProcess(Resource):
 
 class QuestionnaireDuringSolutionProcess(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def _get(self, first=False, when="after_iteration"):
         questions = []
 
@@ -314,10 +317,12 @@ class QuestionnaireDuringSolutionProcess(Resource):
         return {"questions": questions, "start_time": str(datetime.datetime.now())}, 200
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         return self._get(first=False, when="after_iteration")
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
@@ -375,10 +380,12 @@ class QuestionnaireDuringSolutionProcess(Resource):
 
 class QuestionnaireDuringSolutionProcessFirstIteration(QuestionnaireDuringSolutionProcess):
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         return self._get(first=True, when="after_iteration")
 
 class QuestionnaireDuringSolutionProcessAfterNew(QuestionnaireDuringSolutionProcess):
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         return self._get(first=False, when="after_show_new")

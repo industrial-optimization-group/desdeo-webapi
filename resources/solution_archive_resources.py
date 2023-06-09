@@ -4,7 +4,7 @@ from copy import deepcopy
 import datetime
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
-from models.user_models import UserModel
+from models.user_models import UserModel, role_required, USER_ROLE
 from models.problem_models import SolutionArchive, Problem
 import simplejson as json
 
@@ -55,6 +55,7 @@ archive_parser_get.add_argument(
 
 class Archive(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         data = archive_parser_add.parse_args()
 
@@ -145,6 +146,7 @@ class Archive(Resource):
             return {"message": msg}, 202
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         data = archive_parser_get.parse_args()
 

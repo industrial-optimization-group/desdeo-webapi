@@ -44,3 +44,12 @@ class TestUser(TestCase):
         # check that a new guest was acutally added
         guests_n = GuestUserModel.query.count()
         assert guests_n == 2
+
+        data = json.loads(response.data)
+        assert "access_token" in data
+        assert "refresh_token" in data
+
+        response = self.app.get("/secret", headers={"Authorization": f"Bearer {data['access_token']}"})
+
+        # should not be able to access
+        assert response.status_code == 403
