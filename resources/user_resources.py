@@ -2,11 +2,16 @@ from datetime import datetime, timezone
 import random
 import string
 from functools import wraps
+import json
 
 from database import db
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.user_models import TokenBlocklist, UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
+from models.problem_models import GuestProblem
+from desdeo_problem.testproblems import car_side_impact
+
+default_problems = {"car_side_impact": car_side_impact()}
 
 user_parse = reqparse.RequestParser()
 user_parse.add_argument("username", help="The username is required", required=True)
@@ -36,6 +41,20 @@ class GuestCreate(Resource):
             return {"message": "Could not add new guest to database"}, 500
 
         # create and add problems for guest to database
+        try:
+            for problem_name, problem in default_problems.items():
+                db.session.add(
+                    GuestProblem(
+                        name=problem_name,
+                        problem_type="Analytical",
+                        problem_pickle=problem,
+                        user_id=new_guest.id,
+                        minimize=json.dumps([1 for _ in range(problem.n_of_objectives)]),
+                    )
+                )
+                db.session.commit()
+        except Exception as e:
+            return {"message": "Could not add default problems to guest user"}, 500
 
         return {
             "message": f"Guest {username} was created!",

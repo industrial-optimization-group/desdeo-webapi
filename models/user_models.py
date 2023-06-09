@@ -8,15 +8,15 @@ from flask_jwt_extended import get_jwt
 USER_ROLE = "user"
 GUEST_ROLE = "guest"
 
-def role_required(role):
+def role_required(*roles):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             claims = get_jwt()
-            if claims['role'] != role:
-                return {"message": "Access denied"}, 403
-            else:
+            if 'role' in claims and claims['role'] in roles:
                 return func(*args, **kwargs)
+            else:
+                return {'message': 'Access denied'}, 403
         return wrapper
     return decorator
 

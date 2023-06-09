@@ -4,7 +4,7 @@ import json
 from app import app, db
 from database import db
 from models.user_models import GuestUserModel
-
+from resources.user_resources import default_problems
 
 class TestUser(TestCase):
     SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
@@ -53,3 +53,35 @@ class TestUser(TestCase):
 
         # should not be able to access
         assert response.status_code == 403
+
+        response = self.app.get("/problem/access", headers={"Authorization": f"Bearer {data['access_token']}"})
+        
+        # should be able to access
+        assert response.status_code == 200
+
+    def test_has_problems(self):
+        response = self.app.post("/guest/create")
+
+        # get should return 200
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        response = self.app.get("/problem/access", headers={"Authorization": f"Bearer {data['access_token']}"})
+        
+        # should be able to access
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        assert "problems" in data
+        assert len(data["problems"]) > 0
+        assert len(data["problems"]) == len(default_problems)
+
+        for i in range(len(data["problems"])):
+            assert "id" in data["problems"][i]
+            assert "name" in data["problems"][i]
+            assert "problem_type" in data["problems"][i]
+
+    def test_solve_problems(self):
+        pass

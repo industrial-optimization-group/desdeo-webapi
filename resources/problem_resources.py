@@ -11,10 +11,10 @@ from desdeo_problem import (
 from desdeo_tools.maps import classificationPIS
 from desdeo_emo.problem import IOPISProblem
 from desdeo_tools.scalarization import AUG_GUESS_GLIDE, AUG_STOM_GLIDE
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required, get_jwt
 from flask_restx import Resource, reqparse
-from models.problem_models import Problem
-from models.user_models import UserModel, role_required, USER_ROLE
+from models.problem_models import Problem, GuestProblem
+from models.user_models import UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
 from utilities.expression_parser import numpify_expressions
 
 # The vailable problem types
@@ -155,15 +155,23 @@ problem_access_parser.add_argument(
 
 class ProblemAccess(Resource):
     @jwt_required()
-    @role_required(USER_ROLE)
+    @role_required(USER_ROLE, GUEST_ROLE)
     def get(self):
         current_user = get_jwt_identity()
-        current_user_id = UserModel.query.filter_by(username=current_user).first().id
+        role = get_jwt()["role"]
+
+        if role == USER_ROLE:
+            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+        else: # guest role
+            current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
 
         # TODO: remove try catch block and check the problems query
         try:
-            problems = Problem.query.filter_by(user_id=current_user_id).all()
-
+            if role == USER_ROLE:
+                problems = Problem.query.filter_by(user_id=current_user_id).all()
+            else: # guest role
+                problems = GuestProblem.query.filter_by(user_id=current_user_id).all()
+            
             response = {
                 "problems": [
                     {
