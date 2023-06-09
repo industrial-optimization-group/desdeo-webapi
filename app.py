@@ -60,6 +60,9 @@ api.add_resource(user_resources.TokenRefresh, "/token/refresh")
 api.add_resource(user_resources.AllUsers, "/users")
 api.add_resource(user_resources.SecretResource, "/secret")
 
+# Add guest endpoints
+api.add_resource(user_resources.GuestCreate, "/guest/create")
+
 # Add problem endpoints
 api.add_resource(problem_resources.ProblemCreation, "/problem/create")
 api.add_resource(problem_resources.ProblemAccess, "/problem/access")

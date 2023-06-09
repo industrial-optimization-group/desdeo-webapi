@@ -33,3 +33,14 @@ class TestUser(TestCase):
         guest = GuestUserModel.query.filter_by(username=guest_name).first()
 
         assert guest.username == guest_name
+        assert GuestUserModel.query.count() == 1
+
+    def test_create(self):
+        response = self.app.post("/guest/create")
+
+        # get should return 200
+        assert response.status_code == 200
+
+        # check that a new guest was acutally added
+        guests_n = GuestUserModel.query.count()
+        assert guests_n == 2

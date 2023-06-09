@@ -13,6 +13,10 @@ class GuestUserModel(db.Model):
     def __repr__(self):
         return f"Guest: ('{self.username}')"
 
+    @classmethod
+    def find_by_username(cls, username):
+        return cls.query.filter_by(username=username).first()
+
 class UserModel(db.Model):
     """This model describes a registered user with a password and stored problems."""
     __tablename__ = "user"

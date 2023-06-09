@@ -1,18 +1,48 @@
 from datetime import datetime, timezone
+import random
+import string
 
 from database import db
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
-from models.user_models import TokenBlocklist, UserModel
+from models.user_models import TokenBlocklist, UserModel, GuestUserModel
 
-parser = reqparse.RequestParser()
-parser.add_argument("username", help="The username is required", required=True)
-parser.add_argument("password", help="The password is required", required=True)
+user_parse = reqparse.RequestParser()
+user_parse.add_argument("username", help="The username is required", required=True)
+user_parse.add_argument("password", help="The password is required", required=True)
 
+class GuestCreate(Resource):
+    """To request a new user account"""
+    def post(self):
+        # Create a random guest username
+        username = f"guest_{''.join(random.choice(string.ascii_letters + string.digits) for _ in range(5))}"
+
+        # Check that is does not exists yet, retry if it does
+        if GuestUserModel.find_by_username(username):
+            while GuestUserModel.find_by_username(username):
+                username = f"guest_{''.join(random.choice(string.ascii_letters + string.digits) for _ in range(5))}"
+
+        # Add guest to database and create tokens
+        new_guest = GuestUserModel(username=username)
+        try:
+            db.session.add(new_guest)
+            db.session.commit()
+            access_token = create_access_token(username)
+            refresh_token = create_refresh_token(username)
+        except Exception as e:
+            return {"message": "Could not add new guest to database"}, 500
+
+        # create and add problems for guest to database
+
+        return {
+            "message": f"Guest {username} was created!",
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+        }, 200
 
 class UserRegistration(Resource):
     def post(self):
-        data = parser.parse_args()
+        data = user_parse.parse_args()
 
         if UserModel.find_by_username(data["username"]):
             return {"message": f"User {data['username']} already exists!"}, 400
@@ -34,7 +64,7 @@ class UserRegistration(Resource):
 
 class UserLogin(Resource):
     def post(self):
-        data = parser.parse_args()
+        data = user_parse.parse_args()
         current_user = UserModel.find_by_username(data["username"])
 
         if not current_user:
@@ -102,6 +132,7 @@ class AllUsers(Resource):
 
 
 class SecretResource(Resource):
+    """Used for testing."""
     @jwt_required()
     def get(self):
         return {"answer": 42}
