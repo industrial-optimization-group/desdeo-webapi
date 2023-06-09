@@ -35,6 +35,9 @@ sphinx-rtd-theme = "^0.5.1"
 pytest = "^6.2.3"
 matplotlib = "^3.4.2"
 
+[tool.poetry.group.dev.dependencies]
+pytest-rerunfailures = "^11.1.2"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
