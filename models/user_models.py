@@ -2,7 +2,19 @@ from database import db
 from passlib.hash import pbkdf2_sha256 as sha256
 
 
+class GuestUserModel(db.Model):
+    """this model describes a guest user account with no password and no possibility to store anything on the database.
+    Available prblems are pre-loaded and cannot be changed."""
+    __tablename__ = "guest"
+    id = db.Column(db.Integer, primary_key=True, unique=True)
+    username = db.Column(db.String(120), unique=True, nullable=False)
+    problems = db.relationship("Problem", backref="owner", lazy=True)
+    
+    def __repr__(self):
+        return f"Guest: ('{self.username}')"
+
 class UserModel(db.Model):
+    """This model describes a registered user with a password and stored problems."""
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True, unique=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
