@@ -10,7 +10,8 @@ class Method(db.Model):
     id = db.Column(db.Integer, primary_key=True, unique=True)
     name = db.Column(db.String(120), nullable=False)
     method_pickle = db.Column(db.PickleType(pickler=dill))
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    guest_id = db.Column(db.Integer, db.ForeignKey("guest.id"), nullable=True)
     minimize = db.Column(db.String(120), nullable=False)
     # status of the method. Options: ["NOT STARTED", "ITERATING", "FINISHED"]
     status = db.Column(db.String(120), nullable=True)

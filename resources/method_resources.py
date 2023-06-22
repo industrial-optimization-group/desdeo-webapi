@@ -13,11 +13,11 @@ from desdeo_mcdm.interactive import NimbusClassificationRequest
 from desdeo_problem.problem.Problem import DiscreteDataProblem
 from desdeo_emo.problem import IOPISProblem
 from desdeo_emo.EAs import RVEA, IOPIS_NSGAIII
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required, get_jwt
 from flask_restx import Resource, reqparse
 from models.method_models import Method
-from models.problem_models import Problem
-from models.user_models import UserModel, role_required, USER_ROLE
+from models.problem_models import Problem, GuestProblem
+from models.user_models import UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
 from utilities.expression_parser import NumpyEncoder, numpify_dict_items
 import pandas as pd
 import numpy as np
@@ -70,12 +70,20 @@ method_control_parser.add_argument(
 
 class MethodCreate(Resource):
     @jwt_required()
-    @role_required(USER_ROLE)
+    @role_required(USER_ROLE, GUEST_ROLE)
     def get(self):
+        claims = get_jwt()
         current_user = get_jwt_identity()
-        current_user_id = UserModel.query.filter_by(username=current_user).first().id
 
-        method = Method.query.filter_by(user_id=current_user_id).first()
+        if claims["role"] == USER_ROLE: 
+            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+            method = Method.query.filter_by(user_id=current_user_id).first()
+        elif claims["role"] == GUEST_ROLE:
+            current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+            method = Method.query.filter_by(guest_id=current_user_id).first()
+        else:
+            return {"message": "User role not found."}, 404
+
         if method is None:
             # not found
             return {"message": "No method found defined for the current user."}, 404
@@ -84,21 +92,23 @@ class MethodCreate(Resource):
         return {"message": "Method found!"}, 200
 
     @jwt_required()
-    @role_required(USER_ROLE)
+    @role_required(USER_ROLE, GUEST_ROLE)
     def post(self):
         data = method_create_parser.parse_args()
 
         problem_id = data["problem_id"]
 
         try:
+            claims = get_jwt()
             current_user = get_jwt_identity()
-            current_user_id = (
-                UserModel.query.filter_by(username=current_user).first().id
-            )
 
-            query = Problem.query.filter_by(
-                user_id=current_user_id, id=problem_id
-            ).first()
+            if claims["role"] == USER_ROLE: 
+                current_user_id = UserModel.query.filter_by(username=current_user).first().id
+                query = Problem.query.filter_by(user_id=current_user_id, id=problem_id).first()
+            elif claims["role"] == GUEST_ROLE:
+                current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+                query = GuestProblem.query.filter_by(user_id=current_user_id, id=problem_id).first()
+
             problem = query.problem_pickle
             problem_minimize = query.minimize
 
@@ -184,21 +194,37 @@ class MethodCreate(Resource):
         # add method to database, but keep only one method at any given time
         # if method already exists, delete it
         print(f"DEBUG: deleted {Method.query.filter_by(user_id=current_user_id).all()}")
-        Method.query.filter_by(user_id=current_user_id).delete()
+        if claims["role"] == USER_ROLE:
+            Method.query.filter_by(user_id=current_user_id).delete()
+        elif claims["role"] == GUEST_ROLE: 
+            Method.query.filter_by(guest_id=current_user_id).delete()
         db.session.commit()
 
         # add method to db
-        db.session.add(
-            Method(
-                name=method_name,
-                method_pickle=method,
-                user_id=current_user_id,
-                minimize=problem_minimize,
-                status="NOT STARTED",
-                last_request=None,
+        if claims["role"] == USER_ROLE:
+            db.session.add(
+                Method(
+                    name=method_name,
+                    method_pickle=method,
+                    user_id=current_user_id,
+                    minimize=problem_minimize,
+                    status="NOT STARTED",
+                    last_request=None,
+                )
             )
-        )
-        db.session.commit()
+            db.session.commit()
+        elif claims["role"] == GUEST_ROLE:
+            db.session.add(
+                Method(
+                    name=method_name,
+                    method_pickle=method,
+                    guest_id=current_user_id,
+                    minimize=problem_minimize,
+                    status="NOT STARTED",
+                    last_request=None,
+                )
+            )
+            db.session.commit()
 
         response = {"method": method_name, "owner": current_user}
 

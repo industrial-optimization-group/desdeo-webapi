@@ -4,6 +4,7 @@ import json
 from app import app, db
 from database import db
 from models.user_models import GuestUserModel
+from models.method_models import Method
 from resources.user_resources import default_problems
 
 class TestUser(TestCase):
@@ -111,5 +112,53 @@ class TestUser(TestCase):
         assert "problem_id" in data[str(1)]
 
 
-    def test_solve_problems(self):
-        pass
+    def test_create_method(self):
+        response = self.app.post("/guest/create")
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+        payload = json.dumps({"problem_id": 1, "method": "reference_point_method"})
+
+        # no methods should exist for the user test_user yet
+        assert Method.query.filter_by(guest_id=2).all() == [] # 2 because we set a new guest after setup
+
+        response = self.app.post(
+            "/method/create",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # one method should exist for the user test_user
+        assert len(Method.query.filter_by(guest_id=2).all()) == 1 # 2 because we set a new guest after setup
+        assert (
+            Method.query.filter_by(guest_id=2).first().name == "reference_point_method"
+        )
+
+        payload = json.dumps({"problem_id": 1, "method": "reference_point_method_alt"})
+        response = self.app.post(
+            "/method/create",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # one method should still only exist
+        assert len(Method.query.filter_by(guest_id=2).all()) == 1 # 2 becaseu we set a new guest after setup
+        assert (
+            Method.query.filter_by(guest_id=2).first().name
+            == "reference_point_method_alt"
+        )
