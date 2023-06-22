@@ -66,6 +66,7 @@ api.add_resource(user_resources.GuestCreate, "/guest/create")
 # Add problem endpoints
 api.add_resource(problem_resources.ProblemCreation, "/problem/create")
 api.add_resource(problem_resources.ProblemAccess, "/problem/access")
+api.add_resource(problem_resources.ProblemAccessAll, "/problem/access/all")
 
 # Add method endpoints
 api.add_resource(method_resources.MethodCreate, "/method/create")

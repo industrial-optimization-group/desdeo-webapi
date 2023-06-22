@@ -83,5 +83,33 @@ class TestUser(TestCase):
             assert "name" in data["problems"][i]
             assert "problem_type" in data["problems"][i]
 
+    def test_get_all_problem_info(self):
+        response = self.app.post("/guest/create")
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        response = self.app.get("/problem/access/all", headers={"Authorization": f"Bearer {data['access_token']}"})
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        assert len(data) > 1
+
+        assert "objective_names" in data[str(1)]
+        assert "variable_names" in data[str(1)]
+        assert "ideal" in data[str(1)]
+        assert "nadir" in data[str(1)]
+        assert "n_objectives" in data[str(1)]
+        assert "n_variables" in data[str(1)]
+        assert "n_constraints" in data[str(1)]
+        assert "minimize" in data[str(1)]
+        assert "problem_name" in data[str(1)]
+        assert "problem_type" in data[str(1)]
+        assert "problem_id" in data[str(1)]
+
+
     def test_solve_problems(self):
         pass

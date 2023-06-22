@@ -9,9 +9,9 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from flask_restx import Resource, reqparse
 from models.user_models import TokenBlocklist, UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
 from models.problem_models import GuestProblem
-from desdeo_problem.testproblems import car_side_impact
+from desdeo_problem.testproblems import car_side_impact, vehicle_crashworthiness
 
-default_problems = {"car_side_impact": car_side_impact()}
+default_problems = {"car_side_impact": car_side_impact(), "vehicle_crash_worthiness": vehicle_crashworthiness()}
 
 user_parse = reqparse.RequestParser()
 user_parse.add_argument("username", help="The username is required", required=True)
@@ -46,7 +46,7 @@ class GuestCreate(Resource):
                 db.session.add(
                     GuestProblem(
                         name=problem_name,
-                        problem_type="Analytical",
+                        problem_type="Test problem",
                         problem_pickle=problem,
                         user_id=new_guest.id,
                         minimize=json.dumps([1 for _ in range(problem.n_of_objectives)]),

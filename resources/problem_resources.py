@@ -18,7 +18,7 @@ from models.user_models import UserModel, GuestUserModel, role_required, USER_RO
 from utilities.expression_parser import numpify_expressions
 
 # The vailable problem types
-available_problem_types = ["Analytical", "Discrete", "Classification PIS"]
+available_problem_types = ["Analytical", "Discrete", "Classification PIS", "Test problem"]
 supported_analytical_problem_operators = ["+", "-", "*", "/"]
 
 # Problem creation base parser
@@ -152,6 +152,47 @@ problem_access_parser.add_argument(
     required=True,
 )
 
+def get_problem_info(problem_query):
+    # From model
+    problem_id = problem_query.id
+    minimize = problem_query.minimize
+    problem_name = problem_query.name
+    problem_type = problem_query.problem_type
+    # TODO: description
+
+    problem_pickle = problem_query.problem_pickle
+
+    if isinstance(problem_pickle, MOProblem):
+        objective_names = problem_pickle.get_objective_names()
+        variable_names = problem_pickle.get_variable_names()
+        n_variables = problem_pickle.n_of_variables
+        n_constraints = problem_pickle.n_of_constraints
+    elif isinstance(problem_pickle, DiscreteDataProblem):
+        objective_names = problem_pickle.objective_names
+        variable_names = problem_pickle.variable_names
+        n_variables = len(variable_names)
+        n_constraints = 0
+
+    ideal = problem_pickle.ideal.tolist()
+    nadir = problem_pickle.nadir.tolist()
+    n_objectives = problem_pickle.n_of_objectives
+
+    info = {
+        "objective_names": objective_names,
+        "variable_names": variable_names,
+        "ideal": ideal,
+        "nadir": nadir,
+        "n_objectives": n_objectives,
+        "n_variables": n_variables,
+        "n_constraints": n_constraints,
+        "minimize": json.loads(minimize),
+        "problem_name": problem_name,
+        "problem_type": problem_type,
+        "problem_id": problem_id,
+    }
+
+    return info
+
 
 class ProblemAccess(Resource):
     @jwt_required()
@@ -214,6 +255,7 @@ class ProblemAccess(Resource):
 
         try:
             # from model
+            """
             problem_id = problem_query.id
             minimize = problem_query.minimize
             problem_name = problem_query.name
@@ -252,13 +294,48 @@ class ProblemAccess(Resource):
                 "problem_type": problem_type,
                 "problem_id": problem_id,
             }
+            """
+
+            info = get_problem_info(problem_query)
 
             # all ok, 200
-            return response, 200
+            return info, 200
 
         except Exception as e:
             print(f"DEBUG: {e}")
             return {"message": "Encountered internal error while fetching problem"}, 500
+
+
+class ProblemAccessAll(Resource):
+    @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
+    def get(self):
+        """Return information on all the problems defined for the user."""
+        claims = get_jwt()
+        current_user = get_jwt_identity()
+
+        if claims["role"] == USER_ROLE: 
+            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+            problem_queries = Problem.query.filter_by( user_id=current_user_id).all()
+        elif claims["role"] == GUEST_ROLE:
+            current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+            problem_queries = GuestProblem.query.filter_by(user_id=current_user_id).all()
+        else:
+            return {"message": "User role not found."}, 404
+
+        try:
+            problems = {}
+            for problem_query in problem_queries:
+                info = get_problem_info(problem_query)
+                problem_id = problem_query.id
+
+                problems[problem_id] = info
+
+            return problems, 200
+
+        except Exception as e:
+            print(f"DEBUG (while fetching all problem info): {e}")
+            return {"message": "Encountered internal errror while fetching info for all problems"}, 500
 
 
 class ProblemCreation(Resource):

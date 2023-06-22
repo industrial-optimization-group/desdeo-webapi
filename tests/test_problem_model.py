@@ -358,6 +358,7 @@ class TestDiscreteProblem(TestCase):
         return app
 
     def setUp(self):
+        db.drop_all()
         db.create_all()
         self.app = app.test_client()
 
