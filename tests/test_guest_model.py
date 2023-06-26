@@ -37,7 +37,7 @@ class TestUser(TestCase):
         assert GuestUserModel.query.count() == 1
 
     def test_create(self):
-        response = self.app.post("/guest/create")
+        response = self.app.get("/guest/create")
 
         # get should return 200
         assert response.status_code == 200
@@ -61,7 +61,7 @@ class TestUser(TestCase):
         assert response.status_code == 200
 
     def test_has_problems(self):
-        response = self.app.post("/guest/create")
+        response = self.app.get("/guest/create")
 
         # get should return 200
         assert response.status_code == 200
@@ -85,7 +85,7 @@ class TestUser(TestCase):
             assert "problem_type" in data["problems"][i]
 
     def test_get_all_problem_info(self):
-        response = self.app.post("/guest/create")
+        response = self.app.get("/guest/create")
 
         assert response.status_code == 200
 
@@ -113,7 +113,7 @@ class TestUser(TestCase):
 
 
     def test_create_method(self):
-        response = self.app.post("/guest/create")
+        response = self.app.get("/guest/create")
 
         assert response.status_code == 200
 
@@ -164,7 +164,7 @@ class TestUser(TestCase):
         )
 
     def test_method_control_get(self):
-        response = self.app.post("/guest/create")
+        response = self.app.get("/guest/create")
 
         assert response.status_code == 200
 
@@ -221,7 +221,7 @@ class TestUser(TestCase):
         assert response.status_code == 200
 
     def test_method_control_nimbus(self):
-        response = self.app.post("/guest/create")
+        response = self.app.get("/guest/create")
 
         assert response.status_code == 200
 

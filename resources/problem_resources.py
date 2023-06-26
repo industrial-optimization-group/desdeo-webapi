@@ -255,47 +255,6 @@ class ProblemAccess(Resource):
 
         try:
             # from model
-            """
-            problem_id = problem_query.id
-            minimize = problem_query.minimize
-            problem_name = problem_query.name
-            problem_type = problem_query.problem_type
-
-            problem_pickle = problem_query.problem_pickle
-
-            if isinstance(problem_pickle, MOProblem):
-                # from MOProblem
-                objective_names = problem_pickle.get_objective_names()
-                variable_names = problem_pickle.get_variable_names()
-                ideal = problem_pickle.ideal.tolist()
-                nadir = problem_pickle.nadir.tolist()
-                n_objectives = problem_pickle.n_of_objectives
-            elif isinstance(problem_pickle, DiscreteDataProblem):
-                # from discrete problem
-                objective_names = problem_pickle.objective_names
-                variable_names = problem_pickle.variable_names
-                ideal = problem_pickle.ideal.tolist()
-                nadir = problem_pickle.nadir.tolist()
-                n_objectives = problem_pickle.n_of_objectives
-            else:
-                # problem type not found
-                return {
-                    "message": f"Problem of type {type(problem_pickle)} not found"
-                }, 404
-
-            response = {
-                "objective_names": objective_names,
-                "variable_names": variable_names,
-                "ideal": ideal,
-                "nadir": nadir,
-                "n_objectives": n_objectives,
-                "minimize": json.loads(minimize),
-                "problem_name": problem_name,
-                "problem_type": problem_type,
-                "problem_id": problem_id,
-            }
-            """
-
             info = get_problem_info(problem_query)
 
             # all ok, 200

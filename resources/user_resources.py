@@ -27,7 +27,7 @@ user_parse.add_argument("password", help="The password is required", required=Tr
 
 class GuestCreate(Resource):
     """To request a new user account"""
-    def post(self):
+    def get(self):
         # Create a random guest username
         username = f"guest_{''.join(random.choice(string.ascii_letters + string.digits) for _ in range(5))}"
 

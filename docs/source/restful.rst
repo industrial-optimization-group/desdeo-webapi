@@ -101,8 +101,57 @@ Registering
     :statuscode 400: given ``username`` is not a valid username
     :statuscode 500: internal server error
 
+Guest users
+^^^^^^^^^^^
+
+The API supports guest users as well. These users will not need to be registered and credentials for
+guest users may be requested at any time. When created, default test problems will be added to the guest user. 
+
+.. note::
+
+  Notice that guest users will have access to only the pre-defined test problems and cannot define their own
+  multiobjective optimization problems. Guest users cannot save any data to the database and will be
+  deleted periodically. The name of the guest user is always prefixed with ``guest_`` followed by random
+  5 characters, e.g., ``guest_abc12``.
+
+To request credentials for a guest user, use the following endpoint:
+
+.. http:get:: /guest/create
+
+    Create a new guest user and get credentials.
+
+    **Example request**
+
+    .. sourcecode:: http
+
+      GET /guest/create HTTP/1.1
+      Host: example.com
+
+    **Example response**
+
+    .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Vary: Accept
+      Content-Type: application/json
+
+      {
+        "message": "Guest guest_abc12 was created!",
+        "access_token": "access_token",
+        "refresh_token": "refresh_token",
+      }
+
+    :>json string message: A message describing the outcome of the request.
+    :>json string access_token: A JWT to authenticate the guest ``guest_abc12`` in further requests.
+    :>json string refresh_token: A JWT to refresh the ``access_token`` once it expires.
+
+    :statuscode 200: A new guest user was created successfully.
+    :statuscode 500: A new guest could not be created or it was not possible to add the default problems to the guest user.
+
 Managing multiobjective optimization problems
 ---------------------------------------------
+
+.. _access_existing_problem:
 
 Accessing an existing problem
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -137,6 +186,8 @@ Accessing an existing problem
         "ideal": [100, -20, 0.1],
         "nadir": [20, 20, -0.001],
         "n_objectives": 3,
+        "n_variables": 5,
+        "n_constraints": 0,
         "minimize": [-1, 1, -1],
         "problem_name": "Example problem",
         "problem_type": "Analytical",
@@ -151,6 +202,8 @@ Accessing an existing problem
     :>json array ideal: An array of numbers with the ideal point.
     :>json array nadir: An array of numbers with the nadir point.
     :>json number n_objectives: The number of objectives in the problem.
+    :>json number n_variables: The number of variables in the problem.
+    :>json number n_constraints: The number of constraints in the problem.
     :>json array minimize: An array of integers being either ``1`` or ``-1``, where ``1`` at the i'th position indicates the the i'th objective is to be minimized and ``-1`` indicated the objective is to be maximized.
     :>json string problem_name: The name given to the problem.
     :>json string problem_type: The type of the problem.
@@ -162,6 +215,46 @@ Accessing an existing problem
     :statuscode 500: internal server error
 
 
+Access all existing problems
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. http:get:: /problem/access/all 
+
+    Fetch information of all the problems defined for a user.
+
+    .. note::
+
+      Information is returned for each existing problem indexed by the problem's id.
+
+    **Example request**
+
+    .. sourcecode:: http
+
+      GET /problem/access HTTP/1.1
+      Host: example.com 
+
+    **Example response**
+
+    .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Vary: Accept
+      Content-Type: application/json
+
+      {
+        "problem_id": "info",
+        "problem_id": "info",
+      }
+
+    :reqheader Authorization: A JWT access token. Example ``Bearer <access token>``
+
+    :>json number problem_id: The id of a problem.
+    :>json object[] info: The information about the problem with a given id. Follows the same structure as :ref:`Accessing an existing problem <access_existing_problem>`.
+
+    :statuscode 200: All problem info fetched successfully.
+    :statuscode 404: User role not found.
+    :statuscode 500: Internal server error when fetching problem info.
+    
 Query supported problem types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
