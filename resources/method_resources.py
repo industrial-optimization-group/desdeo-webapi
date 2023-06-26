@@ -304,16 +304,27 @@ class MethodControl(Resource):
         return return_message
 
     @jwt_required()
-    @role_required(USER_ROLE)
+    @role_required(USER_ROLE, GUEST_ROLE)
     def post(self):
         data = method_control_parser.parse_args()
         user_response_raw = data["response"]
 
-        current_user = get_jwt_identity()
-        current_user_id = UserModel.query.filter_by(username=current_user).first().id
+        try:
+            claims = get_jwt()
+            current_user = get_jwt_identity()
 
-        # check if any method has been defined
-        method_query = Method.query.filter_by(user_id=current_user_id).first()
+            if claims["role"] == USER_ROLE:
+                current_user_id = UserModel.query.filter_by(username=current_user).first().id
+                method_query = Method.query.filter_by(user_id=current_user_id).first()
+            elif claims["role"] == GUEST_ROLE:
+                current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+                method_query = Method.query.filter_by(guest_id=current_user_id).first()
+
+        except Exception as e:
+            print(f"DEBUG: {e}")
+            # not found
+            return {"message": f"Could not find user with id={current_user_id}."}, 404
+
         if method_query is None:
             # not found
             return {"message": "No defined method found for the current user."}, 404

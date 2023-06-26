@@ -174,7 +174,7 @@ class TestUser(TestCase):
         payload = json.dumps({"problem_id": 1, "method": "reference_point_method"})
 
         # no methods should exist for the user test_user yet
-        assert Method.query.filter_by(user_id=1).all() == []
+        assert Method.query.filter_by(guest_id=2).all() == []
 
         response = self.app.get(
             "/method/control",
@@ -218,4 +218,94 @@ class TestUser(TestCase):
         assert method_query.last_request is not None
 
         # ok
+        assert response.status_code == 200
+
+    def test_method_control_nimbus(self):
+        response = self.app.post("/guest/create")
+
+        assert response.status_code == 200
+
+        data = json.loads(response.data)
+
+        access_token = data["access_token"]
+        payload = json.dumps({"problem_id": 3, "method": "reference_point_method"})  # use river pollution problem (id=3)
+
+        # no methods should exist for the user test_user yet
+        assert Method.query.filter_by(guest_id=2).all() == []
+
+        # create method
+        response = self.app.post(
+            "/method/create",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        # created
+        assert response.status_code == 201
+
+        # start the method
+        response = self.app.get(
+            "/method/control",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+        assert response.status_code == 200
+
+
+        response = {
+            "response": {
+                "reference_point": [-5.0, -3.0, -5.0, 5.0, 0.20],
+            }
+        }
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        assert response.status_code == 200
+
+        response = {
+            "response": {
+                "reference_point": [-5.5, -2.8, -5.2, 5.2, 0.28],
+                "satisfied": False,
+            }
+        }
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
+        response = {
+            "response": {
+                "reference_point": [-5.5, -2.8, -5.2, 5.2, 0.28],
+                "solution_index": 1,
+                "satisfied": True,
+            }
+        }
+        payload = json.dumps(response)
+
+        response = self.app.post(
+            "/method/control",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+            data=payload,
+        )
+
         assert response.status_code == 200

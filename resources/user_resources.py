@@ -3,15 +3,23 @@ import random
 import string
 from functools import wraps
 import json
+import numpy as np
 
 from database import db
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.user_models import TokenBlocklist, UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
 from models.problem_models import GuestProblem
-from desdeo_problem.testproblems import car_side_impact, vehicle_crashworthiness
+from desdeo_problem.testproblems import car_side_impact, vehicle_crashworthiness, river_pollution_problem
 
-default_problems = {"car_side_impact": car_side_impact(), "vehicle_crash_worthiness": vehicle_crashworthiness()}
+def make_river_with_ideal_and_nadir():
+    problem = river_pollution_problem()
+    problem.ideal = np.array([-6.34, -3.44, -7.5, 0, 0])
+    problem.nadir = np.array([-4.75, -2.85, -0.32, 9.70, 0.35])
+    return problem
+
+
+default_problems = {"car_side_impact": car_side_impact(), "vehicle_crash_worthiness": vehicle_crashworthiness(), "river_pollution_w_ideal_and_nadir": make_river_with_ideal_and_nadir()}
 
 user_parse = reqparse.RequestParser()
 user_parse.add_argument("username", help="The username is required", required=True)
