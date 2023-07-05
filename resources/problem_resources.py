@@ -180,8 +180,8 @@ def get_problem_info(problem_query):
     info = {
         "objective_names": objective_names,
         "variable_names": variable_names,
-        "ideal": ideal,
-        "nadir": nadir,
+        # "ideal": ideal,
+        # "nadir": nadir,
         "n_objectives": n_objectives,
         "n_variables": n_variables,
         "n_constraints": n_constraints,
@@ -283,13 +283,14 @@ class ProblemAccessAll(Resource):
             return {"message": "User role not found."}, 404
 
         try:
-            problems = {}
-            for problem_query in problem_queries:
-                info = get_problem_info(problem_query)
-                problem_id = problem_query.id
-
-                problems[problem_id] = info
-
+            # problems = {}
+            # for problem_query in problem_queries:
+            #     info = get_problem_info(problem_query)
+            #     problem_id = problem_query.id
+            #
+            #     problems[problem_id] = info
+            problems = [get_problem_info(problem_query)
+                        for problem_query in problem_queries]
             return problems, 200
 
         except Exception as e:
