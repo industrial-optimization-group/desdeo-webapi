@@ -121,7 +121,6 @@ class UserLogin(Resource):
 
 class UserLogoutAccess(Resource):
     @jwt_required()
-    @role_required(USER_ROLE)
     def post(self):
         try:
             claims = get_jwt()
