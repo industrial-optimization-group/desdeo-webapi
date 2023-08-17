@@ -348,13 +348,13 @@ pyDOE = ">=0.3.8,<0.4.0"
 
 [[package]]
 name = "desdeo-mcdm"
-version = "1.3.1"
+version = "1.3.2"
 description = "Contains traditional optimization techniques from the field of Multiple-criteria decision-making. Methods belonging to the NIMBUS and NAUTILUS families can be found here. Part of the DESDEO framework."
 optional = false
 python-versions = ">=3.9,<3.11"
 files = [
-    {file = "desdeo_mcdm-1.3.1-py3-none-any.whl", hash = "sha256:03852f61249a117dd9351e58306375f9e8f056233f1766e464625f90a11ead34"},
-    {file = "desdeo_mcdm-1.3.1.tar.gz", hash = "sha256:510236e5d7d8296c368092aa9d59c8816e6155185771a61715540dd84d6bfabe"},
+    {file = "desdeo_mcdm-1.3.2-py3-none-any.whl", hash = "sha256:f48a94939c88354a95cac6949a673580252153579226195a5906b4ab69159d9f"},
+    {file = "desdeo_mcdm-1.3.2.tar.gz", hash = "sha256:a7de60d52d28757e682aaf2a0cd289e0766e6782ec145f0e6839b225b286d566"},
 ]
 
 [package.dependencies]
