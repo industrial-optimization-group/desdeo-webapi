@@ -2,7 +2,8 @@ import datetime
 import pytest
 import json
 
-from app import app, db
+from app import app
+from database import db
 from flask_testing import TestCase
 from models.log_models import LogEntry
 from models.user_models import UserModel
@@ -19,6 +20,7 @@ class TestLogging(TestCase):
         return app
 
     def setUp(self):
+        db.drop_all()
         db.create_all()
         self.app = app.test_client()
 

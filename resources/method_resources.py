@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 import simplejson as json
-from app import db
+from database import db
 from desdeo_mcdm.interactive import (
     NIMBUS,
     NautilusNavigator,
@@ -9,13 +9,15 @@ from desdeo_mcdm.interactive import (
     ReferencePointMethod,
     ENautilus,
 )
-from desdeo_problem.problem.Problem import DiscreteDataProblem#, classificationPISProblem
+from desdeo_mcdm.interactive import NimbusClassificationRequest
+from desdeo_problem.problem.Problem import DiscreteDataProblem
+from desdeo_emo.problem import IOPISProblem
 from desdeo_emo.EAs import RVEA, IOPIS_NSGAIII
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required, get_jwt
 from flask_restx import Resource, reqparse
 from models.method_models import Method
-from models.problem_models import Problem
-from models.user_models import UserModel
+from models.problem_models import Problem, GuestProblem
+from models.user_models import UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
 from utilities.expression_parser import NumpyEncoder, numpify_dict_items
 import pandas as pd
 import numpy as np
@@ -68,11 +70,20 @@ method_control_parser.add_argument(
 
 class MethodCreate(Resource):
     @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
     def get(self):
+        claims = get_jwt()
         current_user = get_jwt_identity()
-        current_user_id = UserModel.query.filter_by(username=current_user).first().id
 
-        method = Method.query.filter_by(user_id=current_user_id).first()
+        if claims["role"] == USER_ROLE: 
+            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+            method = Method.query.filter_by(user_id=current_user_id).first()
+        elif claims["role"] == GUEST_ROLE:
+            current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+            method = Method.query.filter_by(guest_id=current_user_id).first()
+        else:
+            return {"message": "User role not found."}, 404
+
         if method is None:
             # not found
             return {"message": "No method found defined for the current user."}, 404
@@ -81,20 +92,23 @@ class MethodCreate(Resource):
         return {"message": "Method found!"}, 200
 
     @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
     def post(self):
         data = method_create_parser.parse_args()
 
         problem_id = data["problem_id"]
 
         try:
+            claims = get_jwt()
             current_user = get_jwt_identity()
-            current_user_id = (
-                UserModel.query.filter_by(username=current_user).first().id
-            )
 
-            query = Problem.query.filter_by(
-                user_id=current_user_id, id=problem_id
-            ).first()
+            if claims["role"] == USER_ROLE: 
+                current_user_id = UserModel.query.filter_by(username=current_user).first().id
+                query = Problem.query.filter_by(user_id=current_user_id, id=problem_id).first()
+            elif claims["role"] == GUEST_ROLE:
+                current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+                query = GuestProblem.query.filter_by(user_id=current_user_id, id=problem_id).first()
+
             problem = query.problem_pickle
             problem_minimize = query.minimize
 
@@ -180,21 +194,37 @@ class MethodCreate(Resource):
         # add method to database, but keep only one method at any given time
         # if method already exists, delete it
         print(f"DEBUG: deleted {Method.query.filter_by(user_id=current_user_id).all()}")
-        Method.query.filter_by(user_id=current_user_id).delete()
+        if claims["role"] == USER_ROLE:
+            Method.query.filter_by(user_id=current_user_id).delete()
+        elif claims["role"] == GUEST_ROLE: 
+            Method.query.filter_by(guest_id=current_user_id).delete()
         db.session.commit()
 
         # add method to db
-        db.session.add(
-            Method(
-                name=method_name,
-                method_pickle=method,
-                user_id=current_user_id,
-                minimize=problem_minimize,
-                status="NOT STARTED",
-                last_request=None,
+        if claims["role"] == USER_ROLE:
+            db.session.add(
+                Method(
+                    name=method_name,
+                    method_pickle=method,
+                    user_id=current_user_id,
+                    minimize=problem_minimize,
+                    status="NOT STARTED",
+                    last_request=None,
+                )
             )
-        )
-        db.session.commit()
+            db.session.commit()
+        elif claims["role"] == GUEST_ROLE:
+            db.session.add(
+                Method(
+                    name=method_name,
+                    method_pickle=method,
+                    guest_id=current_user_id,
+                    minimize=problem_minimize,
+                    status="NOT STARTED",
+                    last_request=None,
+                )
+            )
+            db.session.commit()
 
         response = {"method": method_name, "owner": current_user}
 
@@ -204,12 +234,23 @@ class MethodCreate(Resource):
 
 class MethodControl(Resource):
     @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
     def get(self):
-        current_user = get_jwt_identity()
-        current_user_id = UserModel.query.filter_by(username=current_user).first().id
+        try:
+            claims = get_jwt()
+            current_user = get_jwt_identity()
 
-        # check if any method has been defined
-        method_query = Method.query.filter_by(user_id=current_user_id).first()
+            if claims["role"] == USER_ROLE:
+                current_user_id = UserModel.query.filter_by(username=current_user).first().id
+                method_query = Method.query.filter_by(user_id=current_user_id).first()
+            elif claims["role"] == GUEST_ROLE:
+                current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+                method_query = Method.query.filter_by(guest_id=current_user_id).first()
+
+        except Exception as e:
+            print(f"DEBUG: {e}")
+            # not found
+            return {"message": f"Could not find user with id={current_user_id}."}, 404
 
         if method_query is None:
             # not found
@@ -224,7 +265,7 @@ class MethodControl(Resource):
         method = deepcopy(method_query.method_pickle)
 
         # EA methods handle a bit differently, multiple requests to be handled
-        if isinstance(method, RVEA):
+        if type(method).__name__ == RVEA.__name__:
             return_message, request = EAControlGet(method)
         elif isinstance(method, IOPIS_NSGAIII):
             return_message, request = IOPISControlGet(method)
@@ -263,14 +304,27 @@ class MethodControl(Resource):
         return return_message
 
     @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
     def post(self):
         data = method_control_parser.parse_args()
         user_response_raw = data["response"]
 
-        current_user = get_jwt_identity()
-        current_user_id = UserModel.query.filter_by(username=current_user).first().id
-        # check if any method has been defined
-        method_query = Method.query.filter_by(user_id=current_user_id).first()
+        try:
+            claims = get_jwt()
+            current_user = get_jwt_identity()
+
+            if claims["role"] == USER_ROLE:
+                current_user_id = UserModel.query.filter_by(username=current_user).first().id
+                method_query = Method.query.filter_by(user_id=current_user_id).first()
+            elif claims["role"] == GUEST_ROLE:
+                current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+                method_query = Method.query.filter_by(guest_id=current_user_id).first()
+
+        except Exception as e:
+            print(f"DEBUG: {e}")
+            # not found
+            return {"message": f"Could not find user with id={current_user_id}."}, 404
+
         if method_query is None:
             # not found
             return {"message": "No defined method found for the current user."}, 404
@@ -287,7 +341,26 @@ class MethodControl(Resource):
         # TODO: use a Mutable column
         method = deepcopy(method_query.method_pickle)
 
-        
+        if type(method).__name__ == RVEA.__name__:
+        # EA methods (RVEA for now) require that a preference type is chosen.
+            """if data["preference_type"] < -1:
+                # preference type not specified
+                return {
+                    "message": (
+                        "When using evolutionary methods, the entry in the JSON response "
+                        "'preference_type' must be either positive, or -1 to indicate termination."
+                    )
+                }, 400
+            elif data["preference_type"] == -1:
+                # do non-dominated sorting and return
+                ea_individuals, ea_objectives = method.end()
+                response = json.dumps(
+                    {"individuals": ea_individuals, "objectives": ea_objectives},
+                    cls=NumpyEncoder,
+                    ignore_nan=True,
+                )
+                return json.loads(response), 200"""
+
         last_request = method_query.last_request
 
         # cast lists, which have numerical content, to numpy arrays
@@ -295,7 +368,7 @@ class MethodControl(Resource):
 
         try:
             if (
-                isinstance(method, NautilusNavigator)
+                (type(method).__name__ == NautilusNavigator.__name__)
                 and user_response["go_to_previous"]
             ):
                 # for navigation methods, we need to copy the whole response as the contents of the request when going back
@@ -347,9 +420,7 @@ class MethodControl(Resource):
 
         # we dump the response first so that we can have it encoded into valid JSON using a custom encoder
         # ignore_nan=True will ensure np.nan is coverted to valid JSON value 'null'.
-        if isinstance(
-            method, (RVEA, IOPIS_NSGAIII)
-        ):  # EA methods handle a bit differently, multiple requests to be handled
+        if type(method).__name__ in [RVEA.__name__, IOPIS_NSGAIII.__name__]: # EA methods handle a bit differently, multiple requests to be handled
             """contents = [
                 json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True)
                 for r in new_request
@@ -392,10 +463,12 @@ class MethodControl(Resource):
 
 
 def EAControlGet(method):
-    if isinstance(method.population.problem, set): # classificationPISProblem):
+    if type(method.population.problem).__name__ ==  IOPISProblem.__name__:
+        method.set_interaction_type('Reference point')
         request = method.start()[0]
         """contents = [json.dumps(r, cls=NumpyEncoder, ignore_nan=True) for r in request]"""
     else:
+        method.set_interaction_type('Reference point')
         request = method.start()[0]
         """contents = [
             json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request

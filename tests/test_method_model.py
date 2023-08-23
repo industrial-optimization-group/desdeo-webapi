@@ -4,7 +4,8 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 import simplejson as json
-from app import app, db
+from app import app
+from database import db
 from desdeo_mcdm.interactive.ReferencePointMethod import ReferencePointMethod
 from flask_testing import TestCase
 from models.method_models import Method
@@ -23,6 +24,7 @@ class TestMethod(TestCase):
         return app
 
     def setUp(self):
+        db.drop_all()
         db.create_all()
         self.app = app.test_client()
 
@@ -451,6 +453,7 @@ class TestNautilusNavigator(TestCase):
         return app
 
     def setUp(self):
+        db.drop_all()
         db.create_all()
         self.app = app.test_client()
 
@@ -819,6 +822,7 @@ class TestENautilus(TestCase):
         return app
 
     def setUp(self):
+        db.drop_all()
         db.create_all()
         self.app = app.test_client()
 

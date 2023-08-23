@@ -2,6 +2,7 @@ from flask_testing import TestCase
 from flask_jwt_extended import get_jti
 import json
 from app import app, db
+from database import db
 from models.user_models import UserModel, TokenBlocklist
 
 
@@ -15,6 +16,7 @@ class TestUser(TestCase):
         return app
 
     def setUp(self):
+        db.drop_all()
         db.create_all()
         self.app = app.test_client()
 

@@ -1,9 +1,9 @@
-from app import db
+from database import db
 import datetime
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.log_models import LogEntry, log_entry_types
-from models.user_models import UserModel
+from models.user_models import UserModel, role_required, USER_ROLE
 import simplejson as json
 
 log_entry_parser = reqparse.RequestParser()
@@ -29,6 +29,7 @@ log_entry_parser.add_argument(
 
 class LogEntryResource(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id

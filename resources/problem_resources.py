@@ -1,24 +1,24 @@
 import numpy as np
 import pandas as pd
 import simplejson as json
-from app import db
+from database import db
 from desdeo_problem import (
     DiscreteDataProblem,
     MOProblem,
     Variable,
     _ScalarObjective,
-    #classificationPISProblem,
 )
-#from desdeo_tools.maps import classificationPIS
-#from desdeo_tools.scalarization import AUG_GUESS_GLIDE, AUG_STOM_GLIDE
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from desdeo_tools.maps import classificationPIS
+from desdeo_emo.problem import IOPISProblem
+from desdeo_tools.scalarization import AUG_GUESS_GLIDE, AUG_STOM_GLIDE
+from flask_jwt_extended import get_jwt_identity, jwt_required, get_jwt
 from flask_restx import Resource, reqparse
-from models.problem_models import Problem
-from models.user_models import UserModel
+from models.problem_models import Problem, GuestProblem
+from models.user_models import UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
 from utilities.expression_parser import numpify_expressions
 
 # The vailable problem types
-available_problem_types = ["Analytical", "Discrete", "Classification PIS"]
+available_problem_types = ["Analytical", "Discrete", "Classification PIS", "Test problem"]
 supported_analytical_problem_operators = ["+", "-", "*", "/"]
 
 # Problem creation base parser
@@ -152,17 +152,67 @@ problem_access_parser.add_argument(
     required=True,
 )
 
+def get_problem_info(problem_query):
+    # From model
+    problem_id = problem_query.id
+    minimize = problem_query.minimize
+    problem_name = problem_query.name
+    problem_type = problem_query.problem_type
+    # TODO: description
+
+    problem_pickle = problem_query.problem_pickle
+
+    if isinstance(problem_pickle, MOProblem):
+        objective_names = problem_pickle.get_objective_names()
+        variable_names = problem_pickle.get_variable_names()
+        n_variables = problem_pickle.n_of_variables
+        n_constraints = problem_pickle.n_of_constraints
+    elif isinstance(problem_pickle, DiscreteDataProblem):
+        objective_names = problem_pickle.objective_names
+        variable_names = problem_pickle.variable_names
+        n_variables = len(variable_names)
+        n_constraints = 0
+
+    ideal = problem_pickle.ideal.tolist()
+    nadir = problem_pickle.nadir.tolist()
+    n_objectives = problem_pickle.n_of_objectives
+
+    info = {
+        "objective_names": objective_names,
+        "variable_names": variable_names,
+        "ideal": ideal,
+        "nadir": nadir,
+        "n_objectives": n_objectives,
+        "n_variables": n_variables,
+        "n_constraints": n_constraints,
+        "minimize": json.loads(minimize),
+        "problem_name": problem_name,
+        "problem_type": problem_type,
+        "problem_id": problem_id,
+    }
+
+    return info
+
 
 class ProblemAccess(Resource):
     @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
     def get(self):
         current_user = get_jwt_identity()
-        current_user_id = UserModel.query.filter_by(username=current_user).first().id
+        role = get_jwt()["role"]
+
+        if role == USER_ROLE:
+            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+        else: # guest role
+            current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
 
         # TODO: remove try catch block and check the problems query
         try:
-            problems = Problem.query.filter_by(user_id=current_user_id).all()
-
+            if role == USER_ROLE:
+                problems = Problem.query.filter_by(user_id=current_user_id).all()
+            else: # guest role
+                problems = GuestProblem.query.filter_by(user_id=current_user_id).all()
+            
             response = {
                 "problems": [
                     {
@@ -180,6 +230,7 @@ class ProblemAccess(Resource):
             return {"message": "Could not fetch problems!"}, 404
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         """Fetch a problem from the DB with a given id 'problem_id'.
 
@@ -204,55 +255,51 @@ class ProblemAccess(Resource):
 
         try:
             # from model
-            problem_id = problem_query.id
-            minimize = problem_query.minimize
-            problem_name = problem_query.name
-            problem_type = problem_query.problem_type
-
-            problem_pickle = problem_query.problem_pickle
-
-            if isinstance(problem_pickle, MOProblem):
-                # from MOProblem
-                objective_names = problem_pickle.get_objective_names()
-                variable_names = problem_pickle.get_variable_names()
-                ideal = problem_pickle.ideal.tolist()
-                nadir = problem_pickle.nadir.tolist()
-                n_objectives = problem_pickle.n_of_objectives
-            elif isinstance(problem_pickle, DiscreteDataProblem):
-                # from discrete problem
-                objective_names = problem_pickle.objective_names
-                variable_names = problem_pickle.variable_names
-                ideal = problem_pickle.ideal.tolist()
-                nadir = problem_pickle.nadir.tolist()
-                n_objectives = problem_pickle.n_of_objectives
-            else:
-                # problem type not found
-                return {
-                    "message": f"Problem of type {type(problem_pickle)} not found"
-                }, 404
-
-            response = {
-                "objective_names": objective_names,
-                "variable_names": variable_names,
-                "ideal": ideal,
-                "nadir": nadir,
-                "n_objectives": n_objectives,
-                "minimize": json.loads(minimize),
-                "problem_name": problem_name,
-                "problem_type": problem_type,
-                "problem_id": problem_id,
-            }
+            info = get_problem_info(problem_query)
 
             # all ok, 200
-            return response, 200
+            return info, 200
 
         except Exception as e:
             print(f"DEBUG: {e}")
             return {"message": "Encountered internal error while fetching problem"}, 500
 
 
+class ProblemAccessAll(Resource):
+    @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
+    def get(self):
+        """Return information on all the problems defined for the user."""
+        claims = get_jwt()
+        current_user = get_jwt_identity()
+
+        if claims["role"] == USER_ROLE: 
+            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+            problem_queries = Problem.query.filter_by( user_id=current_user_id).all()
+        elif claims["role"] == GUEST_ROLE:
+            current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+            problem_queries = GuestProblem.query.filter_by(user_id=current_user_id).all()
+        else:
+            return {"message": "User role not found."}, 404
+
+        try:
+            problems = {}
+            for problem_query in problem_queries:
+                info = get_problem_info(problem_query)
+                problem_id = problem_query.id
+
+                problems[problem_id] = info
+
+            return problems, 200
+
+        except Exception as e:
+            print(f"DEBUG (while fetching all problem info): {e}")
+            return {"message": "Encountered internal errror while fetching info for all problems"}, 500
+
+
 class ProblemCreation(Resource):
     @jwt_required()
+    @role_required(USER_ROLE)
     def get(self):
         """Return the names of the available problem types that may be defined.
 
@@ -268,6 +315,7 @@ class ProblemCreation(Resource):
         return response, 200
 
     @jwt_required()
+    @role_required(USER_ROLE)
     def post(self):
         """Specify and add a problem to the DB.
 
@@ -397,7 +445,26 @@ class ProblemCreation(Resource):
 
             if data["problem_type"] == "Analytical":
                 problem = MOProblem(objectives, variables, ideal=ideal, nadir=nadir)
-            
+            elif data["problem_type"] == "Classification PIS":
+                PIS = IOPISProblem(
+                    scalarizers=[AUG_GUESS_GLIDE, AUG_STOM_GLIDE],
+                    utopian=ideal - 1e-6,
+                    nadir=nadir,
+                )
+                # TODO: GET first preference from problem formulation!
+                first_preference = {
+                    "classifications": ["=", ">=", "<=", ">="],
+                    "current solution": (ideal + nadir) / 2,
+                    "levels": (ideal + nadir) / 2 + [0, 0.1, -0.1, 0.1],
+                }
+                PIS.update_preference(first_preference)
+                problem = IOPISProblem(
+                    objectives=objectives,
+                    variables=variables,
+                    nadir=nadir,
+                    ideal=ideal - 1e-6,
+                    PIS=PIS,
+                )
             else:
                 msg = "Wrong problem type"
                 return {"message": msg}, 406

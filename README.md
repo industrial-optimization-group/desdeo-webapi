@@ -38,7 +38,7 @@ as described above, one can switch to the virtual environment spawned by poetry 
 command:
 
 ```
-$> potery shell
+$> poetry shell
 ```
 
 ## Usage
@@ -81,7 +81,7 @@ There are a bunch of tests which may be run to check the proper functioning of `
 dependencies must be installed by running the command:
 
 ```
-$> potery install --development
+$> poetry install --development
 ```
 
 After the development dependencies have been successfully installed, `pytest` can be used to execute all the tests

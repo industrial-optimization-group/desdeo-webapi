@@ -1,8 +1,42 @@
-from app import db
+from database import db
 from passlib.hash import pbkdf2_sha256 as sha256
 
+from functools import wraps
+
+from flask_jwt_extended import get_jwt
+
+USER_ROLE = "user"
+GUEST_ROLE = "guest"
+
+def role_required(*roles):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            claims = get_jwt()
+            if 'role' in claims and claims['role'] in roles:
+                return func(*args, **kwargs)
+            else:
+                return {'message': 'Access denied'}, 403
+        return wrapper
+    return decorator
+
+class GuestUserModel(db.Model):
+    """this model describes a guest user account with no password and no possibility to store anything on the database.
+    Available prblems are pre-loaded and cannot be changed."""
+    __tablename__ = "guest"
+    id = db.Column(db.Integer, primary_key=True, unique=True)
+    username = db.Column(db.String(120), unique=True, nullable=False)
+    problems = db.relationship("GuestProblem", backref="owner", lazy=True)
+    
+    def __repr__(self):
+        return f"Guest: ('{self.username}')"
+
+    @classmethod
+    def find_by_username(cls, username):
+        return cls.query.filter_by(username=username).first()
 
 class UserModel(db.Model):
+    """This model describes a registered user with a password and stored problems."""
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True, unique=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
