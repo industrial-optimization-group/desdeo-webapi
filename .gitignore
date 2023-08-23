@@ -5,3 +5,5 @@ docs/build/*
 users_and_pass.csv
 
 poetry.lock
+
+.venv

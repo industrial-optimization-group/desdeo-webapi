@@ -7,10 +7,10 @@ from desdeo_problem import (
     MOProblem,
     Variable,
     _ScalarObjective,
-    classificationPISProblem,
+    #classificationPISProblem,
 )
-from desdeo_tools.maps import classificationPIS
-from desdeo_tools.scalarization import AUG_GUESS_GLIDE, AUG_STOM_GLIDE
+#from desdeo_tools.maps import classificationPIS
+#from desdeo_tools.scalarization import AUG_GUESS_GLIDE, AUG_STOM_GLIDE
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
 from models.problem_models import Problem
@@ -397,26 +397,7 @@ class ProblemCreation(Resource):
 
             if data["problem_type"] == "Analytical":
                 problem = MOProblem(objectives, variables, ideal=ideal, nadir=nadir)
-            elif data["problem_type"] == "Classification PIS":
-                PIS = classificationPIS(
-                    scalarizers=[AUG_GUESS_GLIDE, AUG_STOM_GLIDE],
-                    utopian=ideal - 1e-6,
-                    nadir=nadir,
-                )
-                # TODO: GET first preference from problem formulation!
-                first_preference = {
-                    "classifications": ["=", ">=", "<=", ">="],
-                    "current solution": (ideal + nadir) / 2,
-                    "levels": (ideal + nadir) / 2 + [0, 0.1, -0.1, 0.1],
-                }
-                PIS.update_preference(first_preference)
-                problem = classificationPISProblem(
-                    objectives=objectives,
-                    variables=variables,
-                    nadir=nadir,
-                    ideal=ideal - 1e-6,
-                    PIS=PIS,
-                )
+            
             else:
                 msg = "Wrong problem type"
                 return {"message": msg}, 406

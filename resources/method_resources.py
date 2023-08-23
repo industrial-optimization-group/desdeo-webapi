@@ -9,7 +9,7 @@ from desdeo_mcdm.interactive import (
     ReferencePointMethod,
     ENautilus,
 )
-from desdeo_problem.problem.Problem import DiscreteDataProblem, classificationPISProblem
+from desdeo_problem.problem.Problem import DiscreteDataProblem#, classificationPISProblem
 from desdeo_emo.EAs import RVEA, IOPIS_NSGAIII
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Resource, reqparse
@@ -269,7 +269,6 @@ class MethodControl(Resource):
 
         current_user = get_jwt_identity()
         current_user_id = UserModel.query.filter_by(username=current_user).first().id
-
         # check if any method has been defined
         method_query = Method.query.filter_by(user_id=current_user_id).first()
         if method_query is None:
@@ -288,27 +287,7 @@ class MethodControl(Resource):
         # TODO: use a Mutable column
         method = deepcopy(method_query.method_pickle)
 
-        if isinstance(
-            method, RVEA
-        ):  # EA methods (RVEA for now) require that a preference type is chosen.
-            """if data["preference_type"] < -1:
-                # preference type not specified
-                return {
-                    "message": (
-                        "When using evolutionary methods, the entry in the JSON response "
-                        "'preference_type' must be either positive, or -1 to indicate termination."
-                    )
-                }, 400
-            elif data["preference_type"] == -1:
-                # do non-dominated sorting and return
-                ea_individuals, ea_objectives = method.end()
-                response = json.dumps(
-                    {"individuals": ea_individuals, "objectives": ea_objectives},
-                    cls=NumpyEncoder,
-                    ignore_nan=True,
-                )
-                return json.loads(response), 200"""
-
+        
         last_request = method_query.last_request
 
         # cast lists, which have numerical content, to numpy arrays
@@ -338,37 +317,8 @@ class MethodControl(Resource):
                 )
             preference_type = data["preference_type"]
 
-            if isinstance(method, RVEA):  # and probably other EAs as well
-                print(user_response)
-                if isinstance(method.population.problem, classificationPISProblem):
-                    if user_response["stage"] == "archive":
-                        selected_solns = method.population.objectives[
-                            user_response["indices"]
-                        ]
-                        if not hasattr(method, "archive"):
-                            method.archive = selected_solns
-                        else:
-                            method.archive = np.vstack((method.archive, selected_solns))
-                        selected_solns = json.dumps(
-                            method.archive, cls=NumpyEncoder, ignore_nan=True
-                        )
-                        method_query.method_pickle = method
-                        db.session.commit()
-                        return {"response": json.loads(selected_solns)}, 200
-                    if user_response["stage"] == "select":
-                        selected_soln = method.archive[user_response["index"]]
-                        selected_soln = json.dumps(
-                            selected_soln, cls=NumpyEncoder, ignore_nan=True
-                        )
-                        return {"response": json.loads(selected_soln)}, 200
-                last_request = EAControlPost(
-                    preference_type, last_request, user_response
-                )
-            elif isinstance(method, IOPIS_NSGAIII):
-                last_request = IOPISControlPost(last_request, user_response)
-            else:
-                last_request.response = user_response
-
+            
+            last_request.response = user_response
             new_request = method.iterate(last_request)
             if isinstance(
                 new_request, tuple
@@ -442,7 +392,7 @@ class MethodControl(Resource):
 
 
 def EAControlGet(method):
-    if isinstance(method.population.problem, classificationPISProblem):
+    if isinstance(method.population.problem, set): # classificationPISProblem):
         request = method.start()[0]
         """contents = [json.dumps(r, cls=NumpyEncoder, ignore_nan=True) for r in request]"""
     else:
