@@ -177,11 +177,47 @@ def get_problem_info(problem_query):
     nadir = problem_pickle.nadir.tolist()
     n_objectives = problem_pickle.n_of_objectives
 
+    #
+    # The backend seems to generate invalid JSON when the ideal or nadir points
+    # contain infinite values. (Note that infinite values are not valid JSON).
+    # This causes problems in the frontend as the JSON parser fails when given
+    # invalid JSON.
+    #
+    # As a quick fix I convert infinite values to the strings "+Infinity" and
+    # "-Infinity". This format is compatible with the format MathJSON uses, and
+    # it is easy to deal with in the frontend.
+    #
+    # In the long-term it might be good to do something similar in every place
+    # where possibly infinite values are sent to the frontend. This requires
+    # some changes in the frontend too.
+    #
+    # The `encode_infinity` function should probably be moved to some better
+    # place. I'll leave it here for now to keep my changes local and easily
+    # digestible.
+    #
+
+    def encode_infinity(x: float):
+        """Encodes infinite values as strings.
+
+        Returns `"+Infinity"` or `"-Infinity"` if `x` is a positive or negative
+        infinite value, respectively, as judged by numpy's `isposinf` and
+        `isneginf` functions.
+
+        Otherwise returns `x`.
+        """
+        if np.isposinf(x):
+            return "+Infinity"
+        elif np.isneginf(x):
+            return "-Infinity"
+        return x
+
     info = {
         "objective_names": objective_names,
         "variable_names": variable_names,
         # "ideal": ideal,
         # "nadir": nadir,
+        "ideal": [encode_infinity(x) for x in ideal],
+        "nadir": [encode_infinity(x) for x in nadir],
         "n_objectives": n_objectives,
         "n_variables": n_variables,
         "n_constraints": n_constraints,
@@ -293,7 +329,7 @@ class ProblemAccessAll(Resource):
             #
             # I changed this to return a list because this format is easier
             # to deal with in the frontend.
-            # 
+            #
             problems = [get_problem_info(problem_query)
                         for problem_query in problem_queries]
             return problems, 200
