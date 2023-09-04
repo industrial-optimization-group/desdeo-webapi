@@ -99,17 +99,17 @@ class TestUser(TestCase):
 
         assert len(data) > 1
 
-        assert "objective_names" in data[str(1)]
-        assert "variable_names" in data[str(1)]
-        assert "ideal" in data[str(1)]
-        assert "nadir" in data[str(1)]
-        assert "n_objectives" in data[str(1)]
-        assert "n_variables" in data[str(1)]
-        assert "n_constraints" in data[str(1)]
-        assert "minimize" in data[str(1)]
-        assert "problem_name" in data[str(1)]
-        assert "problem_type" in data[str(1)]
-        assert "problem_id" in data[str(1)]
+        assert "objective_names" in data[0]
+        assert "variable_names" in data[1]
+        assert "ideal" in data[1]
+        assert "nadir" in data[1]
+        assert "n_objectives" in data[1]
+        assert "n_variables" in data[1]
+        assert "n_constraints" in data[1]
+        assert "minimize" in data[1]
+        assert "problem_name" in data[1]
+        assert "problem_type" in data[1]
+        assert "problem_id" in data[1]
 
 
     def test_create_method(self):
