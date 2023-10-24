@@ -21,6 +21,7 @@ simplejson = "^3.17.3"
 openpyxl = "^3.0.9"
 Werkzeug = ">=2.2"
 desdeo-mcdm = "^1.3.2"
+desdeo-emo = "^1.5.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"
