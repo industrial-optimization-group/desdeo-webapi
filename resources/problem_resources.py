@@ -330,6 +330,7 @@ class ProblemAccessAll(Resource):
             # I changed this to return a list because this format is easier
             # to deal with in the frontend.
             #
+            print(problem_queries)
             problems = [get_problem_info(problem_query)
                         for problem_query in problem_queries]
             return problems, 200

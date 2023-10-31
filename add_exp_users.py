@@ -11,6 +11,7 @@ from desdeo_problem.problem import _ScalarObjective
 from desdeo_problem.problem import DiscreteDataProblem
 from desdeo_problem.surrogatemodels.lipschitzian import LipschitzianRegressor
 from desdeo_problem.problem import Variable
+from desdeo_problem.testproblems import river_pollution_problem
 
 from app import app, db
 from models.problem_models import Problem as ProblemModel
@@ -20,9 +21,14 @@ parser = argparse.ArgumentParser(
     description="Add N new user to the database with a pre-defined problem. and a given username prefix."
 )
 parser.add_argument(
-    "--username", type=str, help="The username prefix to be be used when adding new users.", required=True
+    "--username",
+    type=str,
+    help="The username prefix to be be used when adding new users.",
+    required=True,
 )
-parser.add_argument("--N", type=int, help="The number of usernames to be added.", required=True)
+parser.add_argument(
+    "--N", type=int, help="The number of usernames to be added.", required=True
+)
 
 dill.settings["recurse"] = True
 
@@ -40,21 +46,27 @@ def main():
         letters = string.ascii_lowercase
         args = vars(parser.parse_args())
         usernames = [args["username"] + str(i) for i in range(1, args["N"] + 1)]
-        passwords = [("".join(random.choice(letters) for i in range(6))) for j in range(args["N"])]
+        passwords = [
+            ("".join(random.choice(letters) for i in range(6)))
+            for j in range(args["N"])
+        ]
 
         print(usernames)
         print(passwords)
         try:
-            for (username, password) in zip(usernames, passwords):
+            for username, password in zip(usernames, passwords):
                 add_user(username, password)
                 add_sus_problem(username)
+                add_river_problem(username)
         except Exception as e:
             print("something went wrong...")
             print(e)
             exit()
 
         with open("users_and_pass.csv", "w", newline="") as csvfile:
-            writer = csv.writer(csvfile, delimiter=" ", quotechar="|", quoting=csv.QUOTE_MINIMAL)
+            writer = csv.writer(
+                csvfile, delimiter=" ", quotechar="|", quoting=csv.QUOTE_MINIMAL
+            )
             list(map(lambda x: writer.writerow(x), zip(usernames, passwords)))
 
         print(f"Added users {usernames} to the database succesfully.")
@@ -62,7 +74,9 @@ def main():
 
 def add_user(username, password):
     with app.app_context():
-        db.session.add(UserModel(username=username, password=UserModel.generate_hash(password)))
+        db.session.add(
+            UserModel(username=username, password=UserModel.generate_hash(password))
+        )
         db.session.commit()
 
 
@@ -79,7 +93,9 @@ def add_sus_problem(username):
 
         data = pd.read_csv(file_name)
         # minus because all are to be maximized
-        data[["social", "economic", "environmental"]] = -data[["social", "economic", "environmental"]]
+        data[["social", "economic", "environmental"]] = -data[
+            ["social", "economic", "environmental"]
+        ]
 
         var_names = [f"x{i}" for i in range(1, 12)]
 
@@ -103,6 +119,32 @@ def add_sus_problem(username):
         )
         db.session.commit()
         print(f"Sustainability problem added for user '{username}'")
+
+
+def add_river_problem(username):
+    with app.app_context():
+        user_query = UserModel.query.filter_by(username=username).first()
+        if user_query is None:
+            print(f"USername {username} not found")
+            return
+        else:
+            id = user_query.id
+
+    problem = river_pollution_problem()
+    problem.ideal = np.array([-6.34, -3.44, -7.5, 0, 0])
+    problem.nadir = np.array([-4.75, -2.85, -0.32, 9.70, 0.35])
+
+    db.session.add(
+        ProblemModel(
+            name="River pollution problem",
+            problem_type="Analytical problem",
+            problem_pickle=problem,
+            user_id=id,
+            minimize=json.dumps(problem._max_multiplier.tolist()),
+        )
+    )
+    db.session.commit()
+    print(f"River pollution problem added for user '{username}'")
 
 
 if __name__ == "__main__":
