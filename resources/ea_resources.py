@@ -2,86 +2,99 @@ from copy import deepcopy
 
 import simplejson as json
 from database import db
-from desdeo_mcdm.interactive import (
-    NIMBUS,
-    NautilusNavigator,
-    NautilusNavigatorRequest,
-    ReferencePointMethod,
-    ENautilus,
-)
-from desdeo_mcdm.interactive import NimbusClassificationRequest
-from desdeo_problem.problem.Problem import DiscreteDataProblem
-from desdeo_emo.problem import IOPISProblem
-from desdeo_emo.EAs import RVEA, IOPIS_NSGAIII, NSGAIII
+
+from desdeo_emo.EAs import RVEA, NSGAIII
 from flask_jwt_extended import get_jwt_identity, jwt_required, get_jwt
 from flask_restx import Resource, reqparse
 from models.method_models import Method
 from models.problem_models import Problem, GuestProblem
-from models.user_models import UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
+from models.user_models import (
+    UserModel,
+    GuestUserModel,
+    role_required,
+    USER_ROLE,
+    GUEST_ROLE,
+)
 from utilities.expression_parser import NumpyEncoder, numpify_dict_items
 import pandas as pd
 import numpy as np
+from typing import Union
 
 available_methods = {
-    "reference_point_method": ReferencePointMethod,
-    "reference_point_method_alt": ReferencePointMethod,  # for testing purposes only!
-    "synchronous_nimbus": NIMBUS,
-    "nautilus_navigator": NautilusNavigator,
     "rvea": RVEA,
     "irvea": RVEA,
     "nsgaiii": NSGAIII,
     "insgaiii": NSGAIII,
-    "iopis": IOPIS_NSGAIII,
-    "rvea/class": RVEA,
-    "enautilus": ENautilus,
 }
 
-method_create_parser = reqparse.RequestParser()
-method_create_parser.add_argument(
-    "problem_id",
-    type=str,
-    help="The id of the problem the method being created should attempt to solve.",
-    required=True,
-)
-method_create_parser.add_argument(
-    "method",
-    type=str,
-    help=(
-        f"Specify which method to use. Available methods are: {list(available_methods.keys())}"
-    ),
-    required=True,
-)
 
-method_control_parser = reqparse.RequestParser()
-method_control_parser.add_argument(
-    "response",
-    type=dict,
-    help="The response to continue iterating the method",
-    required=True,
-)
-method_control_parser.add_argument(
-    "stop", type=bool, help="Stop and get solution?", default=False
-)
-method_control_parser.add_argument(
-    "preference_type",
-    type=int,
-    help="The preference type chosen. Indexing starts at 0, -1 indicates no preference type has been chosen.",
-    default=None,
-)
+def ea_create_parser():
+    parser = reqparse.RequestParser()
+    parser.add_argument(
+        "problem_id",
+        type=str,
+        help="The id of the problem the method being created should attempt to solve.",
+        required=True,
+    )
+    parser.add_argument(
+        "method",
+        type=str,
+        help=(
+            f"Specify which method to use. Available methods are: {list(available_methods.keys())}"
+        ),
+        required=True,
+    )
+
+    return parser
 
 
-class MethodCreate(Resource):
+def ea_control_parser():
+    parser = reqparse.RequestParser()
+    parser.add_argument(
+        "response",
+        type=dict,
+        help="The response to continue iterating the method",
+        required=True,
+    )
+    parser.add_argument("stop", type=bool, help="Stop and get solution?", default=False)
+
+    return parser
+
+
+def set_interaction_type_parser():
+    interaction_types = [
+        "Reference point",
+        "Preferred solutions",
+        "Non-preferred solutions",
+        "Preferred ranges",
+    ]
+    parser = reqparse.RequestParser()
+    parser.add_argument(
+        "interaction_type",
+        type=str,
+        help=f"The interaction type to use for the method. Available types are: {interaction_types}",
+        required=True,
+    )
+    return parser
+
+
+class EACreate(Resource):
+    # TODO: Should this be extracted to a separate file to be used by other resources?
     @jwt_required()
     @role_required(USER_ROLE, GUEST_ROLE)
     def get(self):
         claims = get_jwt()
         current_user = get_jwt_identity()
 
-        if claims["role"] == USER_ROLE: 
-            current_user_id = UserModel.query.filter_by(username=current_user).first().id
+        if claims["role"] == USER_ROLE:
+            current_user_id = (
+                UserModel.query.filter_by(username=current_user).first().id
+            )
             method = Method.query.filter_by(user_id=current_user_id).first()
         elif claims["role"] == GUEST_ROLE:
-            current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+            current_user_id = (
+                GuestUserModel.query.filter_by(username=current_user).first().id
+            )
             method = Method.query.filter_by(guest_id=current_user_id).first()
         else:
             return {"message": "User role not found."}, 404
@@ -96,7 +109,7 @@ class MethodCreate(Resource):
     @jwt_required()
     @role_required(USER_ROLE, GUEST_ROLE)
     def post(self):
-        data = method_create_parser.parse_args()
+        data = ea_create_parser(available_methods).parse_args()
 
         problem_id = data["problem_id"]
 
@@ -104,12 +117,20 @@ class MethodCreate(Resource):
             claims = get_jwt()
             current_user = get_jwt_identity()
 
-            if claims["role"] == USER_ROLE: 
-                current_user_id = UserModel.query.filter_by(username=current_user).first().id
-                query = Problem.query.filter_by(user_id=current_user_id, id=problem_id).first()
+            if claims["role"] == USER_ROLE:
+                current_user_id = (
+                    UserModel.query.filter_by(username=current_user).first().id
+                )
+                query = Problem.query.filter_by(
+                    user_id=current_user_id, id=problem_id
+                ).first()
             elif claims["role"] == GUEST_ROLE:
-                current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
-                query = GuestProblem.query.filter_by(user_id=current_user_id, id=problem_id).first()
+                current_user_id = (
+                    GuestUserModel.query.filter_by(username=current_user).first().id
+                )
+                query = GuestProblem.query.filter_by(
+                    user_id=current_user_id, id=problem_id
+                ).first()
 
             problem = query.problem_pickle
             problem_minimize = query.minimize
@@ -134,61 +155,22 @@ class MethodCreate(Resource):
 
         # match the method and initialize
         # TODO: add more methods here!
-        if method_name == "reference_point_method":
-            method = ReferencePointMethod(problem, problem.ideal, problem.nadir)
-        elif method_name == "synchronous_nimbus":
-            method = NIMBUS(problem)
-        elif method_name == "reference_point_method_alt":
-            method = ReferencePointMethod(problem, problem.ideal, problem.nadir)
-        elif method_name == "nautilus_navigator":
-            if query.problem_type == "Discrete":
-                problem: DiscreteDataProblem
-                method = NautilusNavigator(
-                    problem.objectives,
-                    problem.ideal,
-                    problem.nadir,
-                    problem.decision_variables,
-                )
-                method._steps_remaining = 40
-            else:
-                # not discrete problem
-                message = "Currently NAUTILUS Navigator supports only the solving of discrete problem."
-                return {"message": message}, 406
-        elif method_name == "enautilus":
-            if query.problem_type == "Discrete":
-                problem: DiscreteDataProblem
-                method = ENautilus(
-                    problem.objectives,
-                    problem.ideal,
-                    problem.nadir,
-                    variables=problem.decision_variables,
-                )
-            else:
-                # enautilus supports only discrete problems
-                message = "E-NAUTILUS supports solcing discrete problems only"
-                return {"message": message}, 406
-        elif method_name == "rvea":
-            if query.problem_type == "Analytical":
+        if query.problem_type != "Analytical":
+            # not analytical problem
+            message = "Currently only analytical problems are supported."
+            return {"message": message}, 406
+
+        try:
+            if method_name == "rvea":
                 method = RVEA(problem, interact=False)
-            else:
-                # not analytical problem
-                message = "Currently RVEA supports only analytical problem types."
-                return {"message": message}, 406
-        elif method_name == "irvea" or method_name == "rvea/class":
-            if query.problem_type == "Analytical" or "Classification PIS":
+            elif method_name == "irvea":
                 method = RVEA(problem, interact=True)
-            else:
-                # not analytical problem
-                message = "Currently RVEA supports only analytical problem types."
-                return {"message": message}, 406
-        elif method_name == "iopis":
-            if query.problem_type == "Analytical":
-                method = IOPIS_NSGAIII(problem)
-            else:
-                # not analytical problem
-                message = "Currently IOPIS supports only analytical problem types."
-                return {"message": message}, 406
-        else:
+            elif method_name == "nsgaiii":
+                method = NSGAIII(problem, interact=False)
+            elif method_name == "insgaiii":
+                method = NSGAIII(problem, interact=True)
+        except Exception as e:
+            print(f"DEBUG: {e}")
             # internal error
             return {
                 "message": f"For some reason could not initialize method {method_name}"
@@ -198,7 +180,7 @@ class MethodCreate(Resource):
         print(f"DEBUG: deleted {Method.query.filter_by(user_id=current_user_id).all()}")
         if claims["role"] == USER_ROLE:
             Method.query.filter_by(user_id=current_user_id).delete()
-        elif claims["role"] == GUEST_ROLE: 
+        elif claims["role"] == GUEST_ROLE:
             Method.query.filter_by(guest_id=current_user_id).delete()
         db.session.commit()
 
@@ -234,7 +216,7 @@ class MethodCreate(Resource):
         return response, 201
 
 
-class MethodControl(Resource):
+class EAControl(Resource):
     @jwt_required()
     @role_required(USER_ROLE, GUEST_ROLE)
     def get(self):
@@ -243,10 +225,14 @@ class MethodControl(Resource):
             current_user = get_jwt_identity()
 
             if claims["role"] == USER_ROLE:
-                current_user_id = UserModel.query.filter_by(username=current_user).first().id
+                current_user_id = (
+                    UserModel.query.filter_by(username=current_user).first().id
+                )
                 method_query = Method.query.filter_by(user_id=current_user_id).first()
             elif claims["role"] == GUEST_ROLE:
-                current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+                current_user_id = (
+                    GuestUserModel.query.filter_by(username=current_user).first().id
+                )
                 method_query = Method.query.filter_by(guest_id=current_user_id).first()
 
         except Exception as e:
@@ -265,25 +251,12 @@ class MethodControl(Resource):
         # need to make deepcopy to have a new mem addres so that sqlalchemy updates the pickle
         # TODO: use a Mutable column
         method = deepcopy(method_query.method_pickle)
-
-        # EA methods handle a bit differently, multiple requests to be handled
-        if type(method).__name__ == RVEA.__name__:
+        if (
+            type(method).__name__ == RVEA.__name__
+            or type(method).__name__ == NSGAIII.__name__
+        ):
             return_message, request = EAControlGet(method)
-        elif isinstance(method, IOPIS_NSGAIII):
-            return_message, request = IOPISControlGet(method)
-        else:
-            # start the method and set response
-            request = method.start()  # None if method is non interactive
-            if isinstance(request, tuple):
-                # needed when multiple requests are returned as separate objects. This is needed in, e.g., NIMBUS and EA methods.
-                request = request[0]
-
-            # We dump the data here temporarily because the data must be encoded using a custom encoder to be first parsed
-            # into valid JSON, then we load it again before returning.
-            # ignore_nan will result in np.nan to be converted to valid null in JSON
-
-            response = json.dumps(request.content, cls=NumpyEncoder, ignore_nan=True)
-            return_message = {"response": json.loads(response)}, 200
+        
 
         # set status to iterating and last_request
         method_query.status = "ITERATING"
@@ -291,24 +264,12 @@ class MethodControl(Resource):
         method_query.method_pickle = method
         db.session.commit()
 
-        # ok
-        # flask-restx will automatically parse the return value from Python dicts to valid JSON, this is why
-        # we load the response in the return dict.
-
-        ## EA METHOD
-        # Due to how EAs handle preference types, we need to also ask which
-        # preference type has been selected.
-
-        ## MCDM method
-        # In MCDM methods, preferences are handles in a monolithic fashion (i.e., always one preference object
-        # and any choices are handled IN the preference object instead of having multiple objects.)
-
         return return_message
 
     @jwt_required()
     @role_required(USER_ROLE, GUEST_ROLE)
     def post(self):
-        data = method_control_parser.parse_args()
+        data = ea_control_parser().parse_args()
         user_response_raw = data["response"]
 
         try:
@@ -316,10 +277,14 @@ class MethodControl(Resource):
             current_user = get_jwt_identity()
 
             if claims["role"] == USER_ROLE:
-                current_user_id = UserModel.query.filter_by(username=current_user).first().id
+                current_user_id = (
+                    UserModel.query.filter_by(username=current_user).first().id
+                )
                 method_query = Method.query.filter_by(user_id=current_user_id).first()
             elif claims["role"] == GUEST_ROLE:
-                current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+                current_user_id = (
+                    GuestUserModel.query.filter_by(username=current_user).first().id
+                )
                 method_query = Method.query.filter_by(guest_id=current_user_id).first()
 
         except Exception as e:
@@ -344,7 +309,7 @@ class MethodControl(Resource):
         method = deepcopy(method_query.method_pickle)
 
         if type(method).__name__ == RVEA.__name__:
-        # EA methods (RVEA for now) require that a preference type is chosen.
+            # EA methods (RVEA for now) require that a preference type is chosen.
             """if data["preference_type"] < -1:
                 # preference type not specified
                 return {
@@ -369,10 +334,9 @@ class MethodControl(Resource):
         user_response = numpify_dict_items(user_response_raw)
 
         try:
-            if (
-                (type(method).__name__ == NautilusNavigator.__name__)
-                and user_response["go_to_previous"]
-            ):
+            if (type(method).__name__ == NautilusNavigator.__name__) and user_response[
+                "go_to_previous"
+            ]:
                 # for navigation methods, we need to copy the whole response as the contents of the request when going back
                 # since historic information is expected in the contents, but is contained in the response.
                 # TODO this is stupid, fix NautilusNavigator to expect these fields in the response instead...
@@ -392,7 +356,6 @@ class MethodControl(Resource):
                 )
             preference_type = data["preference_type"]
 
-            
             last_request.response = user_response
             new_request = method.iterate(last_request)
             if isinstance(
@@ -422,7 +385,10 @@ class MethodControl(Resource):
 
         # we dump the response first so that we can have it encoded into valid JSON using a custom encoder
         # ignore_nan=True will ensure np.nan is coverted to valid JSON value 'null'.
-        if type(method).__name__ in [RVEA.__name__, IOPIS_NSGAIII.__name__]: # EA methods handle a bit differently, multiple requests to be handled
+        if type(method).__name__ in [
+            RVEA.__name__,
+            IOPIS_NSGAIII.__name__,
+        ]:  # EA methods handle a bit differently, multiple requests to be handled
             """contents = [
                 json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True)
                 for r in new_request
@@ -464,17 +430,96 @@ class MethodControl(Resource):
             return {"response": json.loads(response)}, 200
 
 
+class setInteractionType(Resource):
+    @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
+    def get(self):
+        try:
+            claims = get_jwt()
+            current_user = get_jwt_identity()
+
+            if claims["role"] == USER_ROLE:
+                current_user_id = (
+                    UserModel.query.filter_by(username=current_user).first().id
+                )
+                method_query = Method.query.filter_by(user_id=current_user_id).first()
+            elif claims["role"] == GUEST_ROLE:
+                current_user_id = (
+                    GuestUserModel.query.filter_by(username=current_user).first().id
+                )
+                method_query = Method.query.filter_by(guest_id=current_user_id).first()
+
+        except Exception as e:
+            print(f"DEBUG: {e}")
+            # not found
+            return {"message": f"Could not find user with id={current_user_id}."}, 404
+
+        if method_query is None:
+            # not found
+            return {"message": "No defined method found for the current user."}, 404
+
+        method: Union[RVEA, NSGAIII] = deepcopy(method_query.method_pickle)
+        return method.allowable_interaction_types, 200
+
+    @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
+    def post(self):
+        data = set_interaction_type_parser().parse_args()
+        interaction_type = data["interaction_type"]
+        # TODO: Do we really have to repeat this code everywhere?
+        try:
+            claims = get_jwt()
+            current_user = get_jwt_identity()
+
+            if claims["role"] == USER_ROLE:
+                current_user_id = (
+                    UserModel.query.filter_by(username=current_user).first().id
+                )
+                method_query = Method.query.filter_by(user_id=current_user_id).first()
+            elif claims["role"] == GUEST_ROLE:
+                current_user_id = (
+                    GuestUserModel.query.filter_by(username=current_user).first().id
+                )
+                method_query = Method.query.filter_by(guest_id=current_user_id).first()
+
+        except Exception as e:
+            print(f"DEBUG: {e}")
+            # not found
+            return {"message": f"Could not find user with id={current_user_id}."}, 404
+
+        if method_query is None:
+            # not found
+            return {"message": "No defined method found for the current user."}, 404
+
+        if method_query.status != "ITERATING":
+            # wrong method status, bad request
+            return {"message": "Method has not been started or is finished."}, 400
+
+        # need to make deepcopy to have a new mem addres so that sqlalchemy updates the pickle
+        # TODO: use a Mutable column
+        method: Union[RVEA, NSGAIII] = deepcopy(method_query.method_pickle)
+        method.set_interaction_type(interaction_type)
+        requests = method.requests()
+        info = {}
+        info["ideal"] = method.population.problem.ideal
+        info["nadir"] = method.population.problem.nadir
+        info["solutions"] = json.dumps(
+            method.population.objectives, cls=NumpyEncoder, ignore_nan=True
+        )
+
+        method_query.method_pickle = method
+        method_query.last_request = requests
+        db.session.commit()
+
+        return info, 200
+
+
 def EAControlGet(method):
-    if type(method.population.problem).__name__ ==  IOPISProblem.__name__:
-        method.set_interaction_type('Reference point')
-        request = method.start()[0]
-        """contents = [json.dumps(r, cls=NumpyEncoder, ignore_nan=True) for r in request]"""
-    else:
-        method.set_interaction_type('Reference point')
-        request = method.start()[0]
-        """contents = [
-            json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request
-        ]"""
+    method.set_interaction_type("Reference point")
+    request = method.start()[0]
+    """contents = [
+        json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request
+    ]"""
 
     """response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)"""
     ea_individuals = json.dumps(
@@ -496,39 +541,6 @@ def EAControlGet(method):
     ), request
 
 
-def IOPISControlGet(method):
-    request = method.start()
-    """contents = [
-        json.dumps(r.content, cls=NumpyEncoder, ignore_nan=True) for r in request
-    ]
-    response = json.dumps(contents, cls=NumpyEncoder, ignore_nan=True)"""
-    ea_individuals = json.dumps(
-        method.population.individuals, cls=NumpyEncoder, ignore_nan=True
-    )
-    ea_objectives = json.dumps(
-        method.population.objectives, cls=NumpyEncoder, ignore_nan=True
-    )
-    ideal = json.dumps(
-        method.population.problem.ideal, cls=NumpyEncoder, ignore_nan=True
-    )
-    nadir = json.dumps(
-        method.population.problem.nadir, cls=NumpyEncoder, ignore_nan=True
-    )
-    # Due to how EAs handle preference types, we need to also ask which
-    # preference type has been selected.
-    return (
-        {
-            "response": 0,
-            "preference_type": -1,
-            "individuals": json.loads(ea_individuals),
-            "objectives": json.loads(ea_objectives),
-            "ideal": json.loads(ideal),
-            "nadir": json.loads(nadir),
-        },
-        200,
-    ), request[0]
-
-
 def EAControlPost(preference_type, last_request, user_response):
     # 0: No preference (get full front)
     # 1: PreferredSolutionPreference
@@ -538,7 +550,6 @@ def EAControlPost(preference_type, last_request, user_response):
     # 5: Classification
 
     if preference_type == 5:
-
         return {
             "current solution": user_response["current_solution"],
             "classifications": user_response["classifications"],
@@ -569,13 +580,4 @@ def EAControlPost(preference_type, last_request, user_response):
             # preference_type 4
             # expects numpy
             last_request.response = np_preference
-    return last_request
-
-
-def IOPISControlPost(last_request, user_response):
-
-    np_preference = np.atleast_2d(user_response["preference_data"])
-    columns = last_request.content["dimensions_data"]
-    last_request.response = pd.DataFrame(np_preference, columns=columns.columns)
-
     return last_request
