@@ -11,9 +11,17 @@ CORS(app)
 
 api = Api(app)
 
-ACCESS_EXPIRES = timedelta(hours=1)
-app.config["PROPAGATE_EXCEPTIONS"] = True
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
+db_user = os.environ.get("POSTGRES_USER")
+db_password = os.environ.get("POSTGRES_PASSWORD")
+db_host = os.environ.get("POSTGRES_HOST")
+db_port = os.environ.get("POSTGRES_PORT")
+db_name = os.environ.get("POSTGRES_DB")
+
+ACCESS_EXPIRES = timedelta(hours=2)
+app.config["PROPAGATE_EXCEPTIONS"] = Trueapp.config[
+    "SQLALCHEMY_DATABASE_URI"
+] = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "secret-key"
 app.config["JWT_SECRET_KEY"] = "jwt-secret-key"
