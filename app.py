@@ -6,6 +6,8 @@ from flask_jwt_extended import JWTManager
 from flask_restx import Api
 from database import db
 
+import os
+
 app = Flask(__name__)
 CORS(app)
 
