@@ -20,7 +20,8 @@ db_port = os.environ.get("POSTGRES_PORT")
 db_name = os.environ.get("POSTGRES_DB")
 
 ACCESS_EXPIRES = timedelta(hours=2)
-app.config["PROPAGATE_EXCEPTIONS"] = Trueapp.config[
+app.config["PROPAGATE_EXCEPTIONS"] = True
+app.config[
     "SQLALCHEMY_DATABASE_URI"
 ] = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
