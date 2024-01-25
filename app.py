@@ -7,6 +7,7 @@ from flask_restx import Api
 from database import db
 
 import os
+import warnings
 
 app = Flask(__name__)
 CORS(app)
@@ -27,6 +28,7 @@ if db_host is not None:
     ] = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
+    warnings.warn('Postgres host not been set up in env. Defaulting to sqlite:///app.db')
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "secret-key"
