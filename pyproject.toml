@@ -36,6 +36,96 @@ sphinx-rtd-theme = "^0.5.1"
 pytest = "^6.2.3"
 matplotlib = "^3.4.2"
 
+[tool.ruff]
+# Enable the pycodestyle (`E`) and Pyflakes (`F`) rules by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = [
+    "E",
+    "F",
+    "W",
+    "C901",
+    "D",
+    "UP",
+    "S",
+    "FBT",
+    "B",
+    "A",
+    "COM",
+    "C4",
+    "T20",
+    "PIE",
+    "RET",
+    "PTH",
+    "TD",  # Comment this out if too annoying
+    "FIX",  # Comment this out if too annoying
+    "SIM",
+    "PL",
+    "TRY",
+    "FURB",
+    "LOG",
+    "NPY",
+    "RUF",
+    "I",
+    "N",
+]
+ignore = [
+	"COM812", # Enforcing trailing commas is too annoying.
+	"PLR0915", # "too many statements (>50)"
+	"T201", # allow print statements
+]  
+pydocstyle.convention = "google"
+
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = []
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+line-length = 120
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+# Assume Python 3.11.
+target-version = "py312"
+
+[tool.ruff.per-file-ignores]
+# Ignore certain rules in test files
+"tests/**/*.py" = [
+    "S101", # asserts allowed in tests...
+    "ARG", # Unused function args -> fixtures nevertheless are functionally relevant...
+    "FBT", # Don't care about booleans as positional arguments in tests, e.g. via @pytest.mark.parametrize()
+    "PLR2004", # Magic value used in comparison, ...
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
 [tool.poetry.group.dev.dependencies]
 pytest-rerunfailures = "^11.1.2"
 

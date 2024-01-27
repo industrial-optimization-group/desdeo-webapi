@@ -39,6 +39,7 @@ from resources import (
     user_resources,
     solution_archive_resources,
     log_resources,
+    nimbus,
 )  # noqa: E402
 
 # import views
@@ -72,6 +73,10 @@ api.add_resource(problem_resources.ProblemAccessAll, "/problem/access/all")
 api.add_resource(method_resources.MethodCreate, "/method/create")
 api.add_resource(method_resources.MethodControl, "/method/control")
 
+# Add nimbus endpoints
+
+api.add_resource(nimbus.Iterate, "/nimbus/iterate")
+
 # Add questionnaire endpoints
 api.add_resource(
     questionnaire_resources.QuestionnaireAfterSolutionProcess, "/questionnaire/after"
@@ -80,9 +85,13 @@ api.add_resource(
     questionnaire_resources.QuestionnaireDuringSolutionProcess, "/questionnaire/during"
 )
 api.add_resource(
-    questionnaire_resources.QuestionnaireDuringSolutionProcessFirstIteration, "/questionnaire/during/first"
+    questionnaire_resources.QuestionnaireDuringSolutionProcessFirstIteration,
+    "/questionnaire/during/first",
 )
-api.add_resource(questionnaire_resources.QuestionnaireDuringSolutionProcessAfterNew, "/questionnaire/during/new")
+api.add_resource(
+    questionnaire_resources.QuestionnaireDuringSolutionProcessAfterNew,
+    "/questionnaire/during/new",
+)
 
 # Add archive endpoint
 api.add_resource(solution_archive_resources.Archive, "/archive")
