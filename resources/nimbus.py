@@ -416,6 +416,9 @@ class Iterate(Resource):
             solution.current = False
         db.session.commit()
 
+        # Only keep unique solutions
+        current_solutions = np.unique(current_solutions, axis=0)
+
         for solution in current_solutions:
             db.session.add(
                 UTOPIASolutionArchive(
@@ -573,7 +576,7 @@ class Choose(Resource):
     def post(self):
         """Choose a solution as the final solution."""
         # Parsing the request
-        data = save_parser.parse_args()
+        data = choose_parser.parse_args()
         problem_id = data["problemID"]
         chosen_solution = data["solution"]
 
