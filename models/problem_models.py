@@ -1,6 +1,9 @@
 import dill
+from sqlalchemy.orm import validates, Mapped
+
+from sqlalchemy.dialects import postgresql
+
 from database import db
-from sqlalchemy.orm import validates
 
 # to be able to serialize lambdified expressions returned by SymPy
 # This might break some serializations!
@@ -47,3 +50,18 @@ class SolutionArchive(db.Model):
                 "The dictrionary supplied to SolutionArchive must contain the keys 'variables' and 'objectives'"
             )
         return dict_
+
+
+class UTOPIASolutionArchive(db.Model):
+    __tablename__ = "UTOPIAsolutionarchive"
+    id = db.Column(db.Integer, primary_key=True, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    problem_id = db.Column(db.Integer, db.ForeignKey("problem.id"), nullable=False)
+    preference = db.Column(db.Integer, db.ForeignKey("preference.id"), nullable=False)
+    method_name=db.Column(db.String(100), nullable=False)
+    objectives = db.Column(postgresql.ARRAY(db.Float), nullable=False)
+    variables = db.Column(postgresql.ARRAY(db.Float), nullable=True)
+    saved = db.Column(db.Boolean, nullable=False)
+    current = db.Column(db.Boolean, nullable=False)
+    chosen = db.Column(db.Boolean, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)

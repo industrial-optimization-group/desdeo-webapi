@@ -14,11 +14,22 @@ from desdeo_tools.scalarization import AUG_GUESS_GLIDE, AUG_STOM_GLIDE
 from flask_jwt_extended import get_jwt_identity, jwt_required, get_jwt
 from flask_restx import Resource, reqparse
 from models.problem_models import Problem, GuestProblem
-from models.user_models import UserModel, GuestUserModel, role_required, USER_ROLE, GUEST_ROLE
+from models.user_models import (
+    UserModel,
+    GuestUserModel,
+    role_required,
+    USER_ROLE,
+    GUEST_ROLE,
+)
 from utilities.expression_parser import numpify_expressions
 
 # The vailable problem types
-available_problem_types = ["Analytical", "Discrete", "Classification PIS", "Test problem"]
+available_problem_types = [
+    "Analytical",
+    "Discrete",
+    "Classification PIS",
+    "Test problem",
+]
 supported_analytical_problem_operators = ["+", "-", "*", "/"]
 
 # Problem creation base parser
@@ -152,6 +163,7 @@ problem_access_parser.add_argument(
     required=True,
 )
 
+
 def get_problem_info(problem_query):
     # From model
     problem_id = problem_query.id
@@ -238,17 +250,21 @@ class ProblemAccess(Resource):
         role = get_jwt()["role"]
 
         if role == USER_ROLE:
-            current_user_id = UserModel.query.filter_by(username=current_user).first().id
-        else: # guest role
-            current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
+            current_user_id = (
+                UserModel.query.filter_by(username=current_user).first().id
+            )
+        else:  # guest role
+            current_user_id = (
+                GuestUserModel.query.filter_by(username=current_user).first().id
+            )
 
         # TODO: remove try catch block and check the problems query
         try:
             if role == USER_ROLE:
                 problems = Problem.query.filter_by(user_id=current_user_id).all()
-            else: # guest role
+            else:  # guest role
                 problems = GuestProblem.query.filter_by(user_id=current_user_id).all()
-            
+
             response = {
                 "problems": [
                     {
@@ -309,12 +325,18 @@ class ProblemAccessAll(Resource):
         claims = get_jwt()
         current_user = get_jwt_identity()
 
-        if claims["role"] == USER_ROLE: 
-            current_user_id = UserModel.query.filter_by(username=current_user).first().id
-            problem_queries = Problem.query.filter_by( user_id=current_user_id).all()
+        if claims["role"] == USER_ROLE:
+            current_user_id = (
+                UserModel.query.filter_by(username=current_user).first().id
+            )
+            problem_queries = Problem.query.filter_by(user_id=current_user_id).all()
         elif claims["role"] == GUEST_ROLE:
-            current_user_id = GuestUserModel.query.filter_by(username=current_user).first().id
-            problem_queries = GuestProblem.query.filter_by(user_id=current_user_id).all()
+            current_user_id = (
+                GuestUserModel.query.filter_by(username=current_user).first().id
+            )
+            problem_queries = GuestProblem.query.filter_by(
+                user_id=current_user_id
+            ).all()
         else:
             return {"message": "User role not found."}, 404
 
@@ -331,13 +353,16 @@ class ProblemAccessAll(Resource):
             # to deal with in the frontend.
             #
             print(problem_queries)
-            problems = [get_problem_info(problem_query)
-                        for problem_query in problem_queries]
+            problems = [
+                get_problem_info(problem_query) for problem_query in problem_queries
+            ]
             return problems, 200
 
         except Exception as e:
             print(f"DEBUG (while fetching all problem info): {e}")
-            return {"message": "Encountered internal errror while fetching info for all problems"}, 500
+            return {
+                "message": "Encountered internal errror while fetching info for all problems"
+            }, 500
 
 
 class ProblemCreation(Resource):
@@ -667,3 +692,4 @@ class ProblemCreation(Resource):
                 "owner": current_user,
             }
             return response, 201
+        return {"message": "Error"}, 500

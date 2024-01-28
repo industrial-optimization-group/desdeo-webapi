@@ -1,6 +1,8 @@
 import dill
 from database import db
 
+from sqlalchemy.dialects import postgresql
+
 # to be able to serialize lambdified expressions returned by SymPy
 # This might break some serializations!
 dill.settings["recurse"] = True
@@ -22,3 +24,13 @@ class Method(db.Model):
             f"Method = id:{self.id}, name:{self.name}, user_id:{self.user_id}, minimize:{self.minimize}, "
             f"status:{self.status}, last_request:{self.last_request}"
         )
+
+
+class Preference(db.Model):
+    """Database model for storing preferences temporarily (for UTOPIA)."""
+
+    __tablename__ = "preference"
+    id = db.Column(db.Integer, primary_key=True, unique=True)
+    method = db.Column(db.String, nullable=False)
+    preference = db.Column(postgresql.JSON, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)

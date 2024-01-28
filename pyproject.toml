@@ -23,6 +23,7 @@ Werkzeug = ">=2.2"
 desdeo-mcdm = "^1.3.2"
 desdeo-emo = "^1.5.0"
 ruff = "^0.1.6"
+psycopg2-binary = "^2.9.9"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"
@@ -111,8 +112,8 @@ line-length = 120
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-# Assume Python 3.11.
-target-version = "py312"
+# Assume Python 3.9.
+target-version = "py39"
 
 [tool.ruff.per-file-ignores]
 # Ignore certain rules in test files

@@ -11,14 +11,26 @@ CORS(app)
 
 api = Api(app)
 
-ACCESS_EXPIRES = timedelta(hours=1)
+
+db_user = "bhupindersaini"
+db_password = ""
+db_host = "localhost"
+db_port = "5432"
+db_name = "DESDEO"
+
+ACCESS_EXPIRES = timedelta(hours=2)
 app.config["PROPAGATE_EXCEPTIONS"] = True
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
+app.config[
+    "SQLALCHEMY_DATABASE_URI"
+] = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+#app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "secret-key"
 app.config["JWT_SECRET_KEY"] = "jwt-secret-key"
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = ACCESS_EXPIRES
+
 
 
 jwt = JWTManager(app)
@@ -74,8 +86,10 @@ api.add_resource(method_resources.MethodCreate, "/method/create")
 api.add_resource(method_resources.MethodControl, "/method/control")
 
 # Add nimbus endpoints
-
+api.add_resource(nimbus.Initialize, "/nimbus/initialize")
 api.add_resource(nimbus.Iterate, "/nimbus/iterate")
+api.add_resource(nimbus.Save, "/nimbus/save")
+api.add_resource(nimbus.Choose, "/nimbus/choose")
 
 # Add questionnaire endpoints
 api.add_resource(
