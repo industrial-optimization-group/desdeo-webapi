@@ -3,6 +3,7 @@
 # desdeo-webapi
 
 Table of contents:
+
 - [desdeo-webapi](#desdeo-webapi)
   - [Installation](#installation)
   - [Usage](#usage)
@@ -33,6 +34,7 @@ $> git clone git@github.com:gialmisi/desdeo-webapi.git
 $> cd desdeo-webapi
 $> poetry install
 ```
+
 It is recommended to use virtual environemnts. If `poetry` was used to install the project
 as described above, one can switch to the virtual environment spawned by poetry by running the
 command:
@@ -51,17 +53,16 @@ installed dependencies.
 ### Authentication
 
 To use the API implemented in `desdeo-webapi`, a user should be registered to
-the database for authentication.  For experimenting with the API locally, there
-is the script `add_exp_users.py` which can be executed to create a new database with a number of users each with
-a multiobjective optimization problem defined for them. To add a single user, run the command:
+the database for authentication. For the UTOPIA experiments, there
+is the script `add_UTOPIA_users.py` which can be executed to create a new database with 6 DM users and 1 analyst user each with
+a multiobjective optimization problem defined for them. To add users, run the command:
 
 ```
-$> python add_exp_users.py --username user --N 1
+$> python add_UTOPIA_users.py
 ```
 
-This will add a new user with the username `user1` with a randomly generated password to the database. The password
-will be printed to the standard output after running the above command. More users may be added by incrementing the
-number after `--N`, and the username prefix can be changed by changing the argument of `--username`. The users added
+This will add a new users with the usernames `DM1`-`DM6` and `analyst` with a randomly generated password to the database. The password
+will be printed to the standard output after running the above command. The users added
 alongside their passwords will be also stored in a CSV file named 'users_and_pass.csv`.
 
 ### Basic usage
