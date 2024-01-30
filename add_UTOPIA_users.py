@@ -31,11 +31,14 @@ def main():
 
         # UTOPIA specific stuff
 
-        usernames = [f"DM{i}" for i in range(1, 7)] + ["analyst"]
+        TOTAL_DMs = 5
+
+        usernames = [f"DM{i}" for i in range(1, TOTAL_DMs + 1)] + ["analyst"]
         passwords = [
             ("".join(random.choice(letters) for i in range(6)))
             for j in range(len(usernames))
         ]
+
 
         try:
             for username, password in zip(usernames, passwords):
@@ -43,7 +46,7 @@ def main():
                 if username != "analyst":
                     add_UTOPIA_problem(username, username)
                 else:
-                    for i in range(1, 7):
+                    for i in range(1, TOTAL_DMs + 1):
                         add_UTOPIA_problem(username, f"DM{i}")
                     add_sus_problem(username)
                     add_river_problem(username)
@@ -135,6 +138,7 @@ def add_river_problem(username):
     db.session.commit()
     print(f"River pollution problem added for user '{username}'")
 
+
 def add_UTOPIA_problem(username, filename):
     with app.app_context():
         user_query = UserModel.query.filter_by(username=username).first()
@@ -144,12 +148,27 @@ def add_UTOPIA_problem(username, filename):
         else:
             id = user_query.id
 
-        file_name = "./UTOPIAData/" + filename + ".csv"
+        with open("./UTOPIAdata/all_solutions.json") as f:
+            data = json.load(f)
 
-        data = pd.read_csv(file_name)
+        data = data[filename[-1]]
+
+        data_npv = pd.DataFrame.from_dict(
+            data["npv"], orient="index", columns=["Forest value in Euros"]
+        )
+
+        data_stock = pd.DataFrame.from_dict(
+            data["stock"], orient="index", columns=["Stock in cubic meters"]
+        )
+        data_harvest = pd.DataFrame.from_dict(
+            data["harvest_value"], orient="index", columns=["Harvest value in Euros"]
+        )
+
+        data = -pd.concat([data_npv, data_stock, data_harvest], axis=1).reset_index(
+            drop=True
+        )
 
         var_name = ["Dummy Variable"]
-
         ideal = data.min().values
         nadir = data.max().values
 
@@ -170,6 +189,7 @@ def add_UTOPIA_problem(username, filename):
         )
         db.session.commit()
         print(f"UTOPIA problem added for user '{username}'")
+
 
 if __name__ == "__main__":
     main()

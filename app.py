@@ -14,11 +14,18 @@ CORS(app)
 
 api = Api(app)
 
-db_user = os.environ.get("POSTGRES_USER")
+
+db_user = "bhupindersaini"
+db_password = ""
+db_host = "localhost"
+db_port = "5432"
+db_name = "DESDEO"
+
+"""db_user = os.environ.get("POSTGRES_USER")
 db_password = os.environ.get("POSTGRES_PASSWORD")
 db_host = os.environ.get("POSTGRES_HOST")
 db_port = os.environ.get("POSTGRES_PORT")
-db_name = os.environ.get("POSTGRES_DB")
+db_name = os.environ.get("POSTGRES_DB")"""
 
 ACCESS_EXPIRES = timedelta(hours=2)
 app.config["PROPAGATE_EXCEPTIONS"] = True
