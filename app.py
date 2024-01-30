@@ -96,6 +96,9 @@ api.add_resource(nimbus.Iterate, "/nimbus/iterate")
 api.add_resource(nimbus.Save, "/nimbus/save")
 api.add_resource(nimbus.Choose, "/nimbus/choose")
 
+# Add the endpoint for the forest map for UTOPIA
+api.add_resource(nimbus.UtopiaMap, "/nimbus/utopia")
+
 # Add questionnaire endpoints
 api.add_resource(
     questionnaire_resources.QuestionnaireAfterSolutionProcess, "/questionnaire/after"
