@@ -6,11 +6,13 @@ from flask_jwt_extended import JWTManager
 from flask_restx import Api
 from database import db
 
+import os
+import warnings
+
 app = Flask(__name__)
 CORS(app)
 
 api = Api(app)
-
 
 db_user = os.environ.get("POSTGRES_USER")
 db_password = os.environ.get("POSTGRES_PASSWORD")
@@ -28,8 +30,6 @@ else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
     warnings.warn('Postgres host not been set up in env. Defaulting to sqlite:///app.db')
 
-
-#app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "secret-key"
 app.config["JWT_SECRET_KEY"] = "jwt-secret-key"
