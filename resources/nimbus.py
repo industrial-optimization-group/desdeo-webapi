@@ -251,6 +251,7 @@ class Initialize(Resource):
             method="NIMBUS",
             preference={"initial preference": preference.tolist()},
             date=datetime.datetime.now(),
+            user_id=current_user_id,
         )
 
         db.session.add(current_preference_db)
@@ -297,6 +298,17 @@ class Initialize(Resource):
                 )
             )
             db.session.commit()
+
+        # Set previous final solutions to chosen=False
+        previous_final_solutions = UTOPIASolutionArchive.query.filter_by(
+            user_id=current_user_id,
+            problem_id=problem_id,
+            chosen=True,
+        ).all()
+
+        for solution in previous_final_solutions:
+            solution.chosen = False
+        db.session.commit()
 
         saved_solutions = UTOPIASolutionArchive.query.filter_by(
             user_id=current_user_id,
@@ -437,6 +449,7 @@ class Iterate(Resource):
             method="NIMBUS",
             preference={"classification preference": response},
             date=datetime.datetime.now(),
+            user_id=current_user_id,
         )
         db.session.add(current_preference_db)
         db.session.commit()
@@ -747,6 +760,9 @@ class UtopiaMap(Resource):
 
         if decision_index == "foo":
             return {"message": "Solution not found."}, 404
+        
+        print(solution)
+        print(decision_index)
 
         option = {
             # // This can be used to show any picture behind the map, including an aerial image
@@ -755,11 +771,7 @@ class UtopiaMap(Resource):
             #    image: 'https://upload.wikimedia.org/wikipedia/commons/b/bd/Test.svg',
             #    repeat: 'no-repeat', // You can use 'repeat-x', 'repeat-y', or 'no-repeat'
             # },*/
-            "title": {
-                "text": "Decision Maker 2",
-                "subtext": "Forest data",
-                "left": "right",
-            },
+
             "tooltip": {
                 "trigger": "item",
                 "showDelay": 0,

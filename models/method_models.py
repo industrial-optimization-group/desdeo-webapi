@@ -34,3 +34,4 @@ class Preference(db.Model):
     method = db.Column(db.String, nullable=False)
     preference = db.Column(postgresql.JSON, nullable=False)
     date = db.Column(db.DateTime, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
