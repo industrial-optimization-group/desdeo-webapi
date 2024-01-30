@@ -6,25 +6,30 @@ from flask_jwt_extended import JWTManager
 from flask_restx import Api
 from database import db
 
+import os
+import warnings
+
 app = Flask(__name__)
 CORS(app)
 
 api = Api(app)
 
-
-db_user = "bhupindersaini"
-db_password = ""
-db_host = "localhost"
-db_port = "5432"
-db_name = "DESDEO"
+db_user = os.environ.get("POSTGRES_USER")
+db_password = os.environ.get("POSTGRES_PASSWORD")
+db_host = os.environ.get("POSTGRES_HOST")
+db_port = os.environ.get("POSTGRES_PORT")
+db_name = os.environ.get("POSTGRES_DB")
 
 ACCESS_EXPIRES = timedelta(hours=2)
 app.config["PROPAGATE_EXCEPTIONS"] = True
-app.config[
-    "SQLALCHEMY_DATABASE_URI"
-] = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+if db_host is not None:
+    app.config[
+        "SQLALCHEMY_DATABASE_URI"
+    ] = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
+    warnings.warn('Postgres host not been set up in env. Defaulting to sqlite:///app.db')
 
-#app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "secret-key"
 app.config["JWT_SECRET_KEY"] = "jwt-secret-key"
@@ -90,6 +95,9 @@ api.add_resource(nimbus.Initialize, "/nimbus/initialize")
 api.add_resource(nimbus.Iterate, "/nimbus/iterate")
 api.add_resource(nimbus.Save, "/nimbus/save")
 api.add_resource(nimbus.Choose, "/nimbus/choose")
+
+# Add the endpoint for the forest map for UTOPIA
+api.add_resource(nimbus.UtopiaMap, "/nimbus/utopia")
 
 # Add questionnaire endpoints
 api.add_resource(

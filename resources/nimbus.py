@@ -159,6 +159,50 @@ get_decision_variables_parser.add_argument(
     required=True,
 )
 
+get_utopia_map_parser = reqparse.RequestParser()
+
+get_utopia_map_parser.add_argument(
+    "problemID",
+    type=int,
+    help="The id of the problem these solutions are for.",
+    required=True,
+)
+
+get_utopia_map_parser.add_argument(
+    "UserName",
+    type=str,
+    help="The username of the user.",
+    required=True,
+)
+
+get_utopia_map_parser.add_argument(
+    "Harvest",
+    type=float,
+    help="The harvest value of the current decision.",
+    required=True,
+)
+
+get_utopia_map_parser.add_argument(
+    "NPV",
+    type=float,
+    help="The land value at the end of the planning period for the current decision.",
+    required=True,
+)
+
+get_utopia_map_parser.add_argument(
+    "Stock",
+    type=float,
+    help="The tree stock at the end of the planning period for the current decision.",
+    required=True,
+)
+
+get_utopia_map_parser.add_argument(
+    "Stock",
+    type=str,
+    help="The year that should be shown on the map (as a string).",
+    required=True,
+)
+
 
 @dataclass
 class NIMBUSResponse:
@@ -656,3 +700,202 @@ class GetDecisionVariables(Resource):
         # Check the previous post methods for how to get data from the database.
 
         pass
+
+class UtopiaMap(Resource):
+    # Returns a dict with keys option and forestMap
+    # option is the option for echarts
+    # forestMap is a geojson for echarts.registerMap function
+    @jwt_required()
+    @role_required(USER_ROLE, GUEST_ROLE)
+    def get(self):
+        """Get the decision variables for the chosen solution."""
+        data = map_parser.parse_args()
+        problem_id = data["problemID"]
+        user_name = data["UserName"]
+        harvest = data["Harvest"]
+        npv = data["NPV"]
+        stock = data["Stock"]
+        selectedYear = data["Year"]
+
+        # Get data from the database? Get data from file? Juho can decide.
+        # Check the previous post methods for how to get data from the database.
+
+        with open('UTOPIAdata/all_solutions.json', 'r') as f:
+            solutions = json.load(f)
+
+        with open('UTOPIAdata/treatment_options.json', 'r') as f:
+            treatmentOptions = json.load(f)
+
+        decision_index = 'foo'
+        for i in solutions[str(problem_id)]['harvest_value']:
+            if solutions[str(problem_id)]['harvest_value'][i] == harvest and solutions[str(problem_id)]['npv'][i] == npv and solutions[str(problem_id)]['stock'][i] == stock:
+                decision_index = i
+
+        option = {
+            #// This can be used to show any picture behind the map, including an aerial image 
+            #/*backgroundColor: {
+            #    type: 'pattern',
+            #    image: 'https://upload.wikimedia.org/wikipedia/commons/b/bd/Test.svg',
+            #    repeat: 'no-repeat', // You can use 'repeat-x', 'repeat-y', or 'no-repeat'
+            #},*/
+            'title': {
+                'text': 'Decision Maker 2',
+                'subtext': 'Forest data',
+                'left': 'right'
+            },
+            'tooltip': {
+                'trigger': 'item',
+                'showDelay': 0,
+                'transitionDuration': 0.2,
+            #   //borderColor: 'pink'
+            },
+            'visualMap': { #// vis eg. stock levels
+                'left': 'right',
+            #  //min: 0,
+            # //max: 16,
+                'showLabel': True,
+                #//show: false, // put back to true when fixed the value stuff.
+                #//type: 'continuous', // for stock levle
+                'type': 'piecewise', #// for different plans
+                #// give a map here in some manner. Make simple and start with the do nothing, cut below/top.
+                'pieces': [
+                #   // Color for each plan
+                #   //{ value: 208, symbol: 'circle', label: 'do nothing', color: 'dark green' },
+                #   //{ value: 209, symbol: 'circle', label: 'above_2050', color: 'green' },
+                #   //{ value: 210, symbol: 'circle', label: 'clearcut_2040', color: 'red' },
+                #   //{ value: 231, symbol: 'circle', label: 'above 2050', color: 'green' },
+                #   //{ value: 249, symbol: 'circle', label: 'clearcut_2050', color: 'red' },
+                #   //{ value: 250, symbol: 'circle', label: 'clearcut 2040', color: 'red' },
+                #   //{ value: 251, symbol: 'circle', label: 'above_2050_', color: 'green' },
+                #   //{ value: 252, symbol: 'circle', label: "above_2040 + clearcut_2050", color: 'green' },
+                #   //{ value: 253, symbol: 'circle', label: "below_2040 + clearcut_2050", color: 'yellow' },
+                #   //{ value: 256, symbol: 'circle', label: "donothing", color: 'dark green' },
+                #   //{ value: 279, symbol: 'circle', label: "do_nothing", color: 'dark green' },
+                #   //{ value: 286, symbol: 'circle', label: "clearcut_2040_", color: 'red' },
+                #   //{ value: 11, symbol: 'rectangle', label: '123 (custom special color) ', color: 'green' },
+                #   //{ value: 2, symbol: 'diamond', label: '123 (custom special color) ', color: 'blue' },
+                ],
+                'text': ['Management plans'],
+                #//colorBy: 'series',
+                'calculable': True,
+                #realtime: false
+            },
+
+            #// predefined symbols for visumap'circle': 'rect': 'roundRect': 'triangle': 'diamond': 'pin':'arrow': 
+            #// can give custom svgs also
+
+            'toolbox': {
+                'show': True,
+            #   //orient: 'vertical',
+                'left': 'left',
+                'top': 'top',
+                'feature': {
+                    'dataView': { 'readOnly': False },
+                    'restore': {},
+                    'saveAsImage': {}
+                }
+            },
+            #// can draw graphic components to indicate different things at least
+
+            'series': [
+                {
+                    'name': 'Forest',
+                    'type': 'map',
+                    'roam': True,
+                    'map': 'ForestDM2',
+                    'nameProperty': 'standnumbe',
+                    'colorBy': 'data',
+                    'itemStyle': { 'symbol': 'triangle', 'color': 'red' },
+                    'data': [
+                        #// The actual data is added further down.
+                        #// This stuff is left here commented out to give an idea what the format should be like
+                        #// Notably, using the stand IDs as values is a bad idea
+                        #//{ name: "do nothing", value: 208 }, 
+                        #//{ name: "above_2050", value: 209 },
+                        #//{ name: "clearcut_2040", value: 210 },
+                        #//{ name: "above 2050", value: 231 },
+                        #//{ name: "clearcut_2050", value: 249 },
+                        #//{ name: "clearcut 2040", value: 250 },
+                        #//{ name: "above_2050_", value: 251 },
+                        #//{ name: "above_2040 + clearcut_2050", value: 252 },
+                        #//{ name: "below_2040 + clearcut_2050", value: 253 },
+                        #//{ name: "donothing", value: 256 },
+                        #//{ name: "do_nothing", value: 279 },
+                        #//{ name: "clearcut_2040_", value: 286 },
+                    ],
+                    'nameMap': {
+                        #/*208: "do nothing",
+                        #209: "above_2050",
+                        #210: "clearcut_2040",
+                        #231: "above 2050",
+                        #249: "clearcut_2050",
+                        #250: "clearcut 2040",
+                        #251: "above_2050_",
+                        #252: "above_2040 + clearcut_2050",
+                        #253: "below_2040 + clearcut_2050",
+                        #256: "donothing",
+                        #279: "do_nothing",
+                        #286: "clearcut_2040_",*/
+                    }
+                }
+            ]
+        }
+
+        treatmentColors = {
+            'nothing': 'white',
+            'below_2025': 'yellow',
+            'above_2025': 'green',
+            'even_2025': 'blue',
+            'clearcut_2025': 'red',
+            'first_2025': '#73b9bc',
+            'below_2030': 'yellow',
+            'above_2030': 'green',
+            'even_2030': 'blue',
+            'clearcut_2030': 'red',
+            'first_2030': '#73b9bc',
+            'below_2035': 'yellow',
+            'above_2035': 'green',
+            'even_2035': 'blue',
+            'clearcut_2035': 'red',
+            'first_2035': '#73b9bc'
+        }
+        treatmentIDs = {
+            'nothing': 0,
+            'below_2025': 1,
+            'above_2025': 2,
+            'even_2025': 3,
+            'clearcut_2025': 4,
+            'first_2025': 5,
+            'below_2030': 1,
+            'above_2030': 2,
+            'even_2030': 3,
+            'clearcut_2030': 4,
+            'first_2030': 5,
+            'below_2035': 1,
+            'above_2035': 2,
+            'even_2035': 3,
+            'clearcut_2035': 4,
+            'first_2035': 5
+        }
+
+        dm = str(problem_id)
+        for stand in solutions[dm]['treatment'][decision_index]:
+            option['visualMap']['pieces'].append({
+                'value': treatmentIDs[ treatmentOptions[str(solutions[dm]['treatment'][decision_index][stand])][selectedYear] ], 
+                'symbol': 'circle', 
+                'label': treatmentOptions[str(solutions[dm]['treatment'][decision_index][stand])][selectedYear],
+                'color': treatmentColors[treatmentOptions[str(solutions[dm]['treatment'][decision_index][stand])][selectedYear]]
+            })
+            option['series'][0]['data'].append({
+                'name': str(stand) + " " + treatmentOptions[str(solutions[dm]['treatment'][decision_index][stand])][selectedYear],
+                'value': treatmentIDs[ treatmentOptions[str(solutions[dm]['treatment'][decision_index][stand])][selectedYear] ],
+            })
+            option['series'][0]['nameMap'][stand] = str(stand) + " " + treatmentOptions[str(solutions[dm]['treatment'][decision_index][stand])][selectedYear]
+
+        with open(f'UTOPIAdata/{dm}.json', 'r') as f:
+            forestMap = json.load(f)
+
+
+        return {'option':option, 'forestMap':forestMap}, 200
+
+        
