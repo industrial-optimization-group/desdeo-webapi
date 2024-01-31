@@ -743,10 +743,10 @@ class UtopiaMap(Resource):
 
         actual_problem_id = problem_name[-1]
 
-        with open("UTOPIAdata/all_solutions.json", "r") as f:
+        with open("UTOPIAData/all_solutions.json", "r") as f:
             solutions = json.load(f)
 
-        with open("UTOPIAdata/treatment_options.json", "r") as f:
+        with open("UTOPIAData/treatment_options.json", "r") as f:
             treatmentOptions = json.load(f)
 
         decision_index = "foo"
@@ -946,7 +946,7 @@ class UtopiaMap(Resource):
                 ][selectedYear]
             )
 
-        with open(f"UTOPIAdata/{dm}.json", "r") as f:
+        with open(f"UTOPIAData/{dm}.json", "r") as f:
             forestMap = json.load(f)
 
         return {"option": option, "forestMap": forestMap, "mapName": "ForestMap"}, 200

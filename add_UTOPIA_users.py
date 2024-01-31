@@ -148,7 +148,7 @@ def add_UTOPIA_problem(username, filename):
         else:
             id = user_query.id
 
-        with open("./UTOPIAdata/all_solutions.json") as f:
+        with open("./UTOPIAData/all_solutions.json") as f:
             data = json.load(f)
 
         data = data[filename[-1]]
