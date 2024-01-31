@@ -230,8 +230,6 @@ class Initialize(Resource):
         ideal = problem.ideal
         nadir = problem.nadir
         max_multiplier = np.array(json.loads(problem_query.minimize), dtype=int)
-        print(ideal)
-        print(nadir)
 
         ideal_nadir = np.vstack((ideal, nadir))
         ideal_nadir = ideal_nadir * max_multiplier
@@ -416,10 +414,10 @@ class Iterate(Resource):
         levels = [None for _ in range(len(preference))]
 
         for i, (pref, ref) in enumerate(zip(preference, reference_solution)):
-            if pref == ideal[i]:
+            if pref <= ideal[i]:
                 classes[i] = "<"
                 levels[i] = ideal[i]
-            elif pref == nadir[i]:
+            elif pref >= nadir[i]:
                 classes[i] = "0"
                 levels[i] = nadir[i]
             elif pref == ref:
@@ -438,6 +436,7 @@ class Iterate(Resource):
             "number_of_solutions": data["numSolutions"],
             "levels": np.array(levels),
         }
+
         request.response = response
 
         request = method.iterate(request)[0]
@@ -510,7 +509,6 @@ class Iterate(Resource):
             saved_solutions=saved_solutions,
             all_solutions=all_solutions,
         )
-        print(response)
         # Temporary return to satisfy linter
         return asdict(response), 200
 
@@ -760,9 +758,6 @@ class UtopiaMap(Resource):
 
         if decision_index == "foo":
             return {"message": "Solution not found."}, 404
-        
-        print(solution)
-        print(decision_index)
 
         option = {
             # // This can be used to show any picture behind the map, including an aerial image
@@ -771,7 +766,6 @@ class UtopiaMap(Resource):
             #    image: 'https://upload.wikimedia.org/wikipedia/commons/b/bd/Test.svg',
             #    repeat: 'no-repeat', // You can use 'repeat-x', 'repeat-y', or 'no-repeat'
             # },*/
-
             "tooltip": {
                 "trigger": "item",
                 "showDelay": 0,
@@ -867,6 +861,7 @@ class UtopiaMap(Resource):
             ],
         }
 
+        """# OLD
         treatmentColors = {
             "nothing": "white",
             "below_2025": "yellow",
@@ -884,6 +879,24 @@ class UtopiaMap(Resource):
             "even_2035": "blue",
             "clearcut_2035": "red",
             "first_2035": "#73b9bc",
+        }"""
+        treatmentColors = {
+            "nothing": "#4daf4a",
+            "below_2025": "#ff7f00",
+            "above_2025": "#984ea3",
+            "even_2025": "#ffff33",
+            "clearcut_2025": "#e41a1c",
+            "first_2025": "#377eb8",
+            "below_2030": "#ff7f00",
+            "above_2030": "#984ea3",
+            "even_2030": "#ffff33",
+            "clearcut_2030": "#e41a1c",
+            "first_2030": "#377eb8",
+            "below_2035": "#ff7f00",
+            "above_2035": "#984ea3",
+            "even_2035": "#ffff33",
+            "clearcut_2035": "#e41a1c",
+            "first_2035": "#377eb8",
         }
         treatmentIDs = {
             "nothing": 0,
@@ -916,7 +929,9 @@ class UtopiaMap(Resource):
                     "symbol": "circle",
                     "label": treatmentOptions[
                         str(solutions[dm]["treatment"][decision_index][stand])
-                    ][selectedYear],
+                    ][selectedYear]
+                    .split("_")[0]
+                    .capitalize(),
                     "color": treatmentColors[
                         treatmentOptions[
                             str(solutions[dm]["treatment"][decision_index][stand])

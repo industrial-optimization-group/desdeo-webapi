@@ -17,6 +17,8 @@ from app import app, db
 from models.problem_models import Problem as ProblemModel
 from models.user_models import UserModel
 
+import pandas as pd
+
 
 # db.init_app(app)
 
@@ -31,35 +33,39 @@ def main():
 
         # UTOPIA specific stuff
 
-        TOTAL_DMs = 5
+        TOTAL_DMs = 100
 
-        usernames = [f"DM{i}" for i in range(1, TOTAL_DMs + 1)] + ["analyst"]
+        usernames = [
+            "Philip",
+            "Mari",
+            "Mikko",
+            "Jouni",
+            "Teppo",
+            "Jukka",
+        ] + [f"User{i}" for i in range(1, TOTAL_DMs + 1)]
         passwords = [
             ("".join(random.choice(letters) for i in range(6)))
             for j in range(len(usernames))
         ]
 
-
         try:
-            for username, password in zip(usernames, passwords):
+            for i, (username, password) in enumerate(zip(usernames, passwords)):
                 add_user(username, password)
-                if username != "analyst":
-                    add_UTOPIA_problem(username, username)
-                else:
-                    for i in range(1, TOTAL_DMs + 1):
-                        add_UTOPIA_problem(username, f"DM{i}")
-                    add_sus_problem(username)
-                    add_river_problem(username)
+                add_UTOPIA_problem(username, f"{(i%5) + 1}")
         except Exception as e:
             print("something went wrong...")
             print(e)
             exit()
 
-        with open("users_and_pass.csv", "w", newline="") as csvfile:
-            writer = csv.writer(
-                csvfile, delimiter=" ", quotechar="|", quoting=csv.QUOTE_MINIMAL
-            )
-            list(map(lambda x: writer.writerow(x), zip(usernames, passwords)))
+        users_pass_hold = pd.DataFrame(
+            {
+                "username": usernames,
+                "password": passwords,
+                "Holding": [(i % 5) + 1 for i in range(len(usernames))],
+            }
+        )
+
+        users_pass_hold.to_csv("./users_and_pass.csv", index=False)
 
         print(f"Added users {usernames} to the database succesfully.")
 
@@ -151,7 +157,7 @@ def add_UTOPIA_problem(username, filename):
         with open("./UTOPIAData/all_solutions.json") as f:
             data = json.load(f)
 
-        data = data[filename[-1]]
+        data = data[filename]
 
         data_npv = pd.DataFrame.from_dict(
             data["npv"], orient="index", columns=["Forest value in Euros"]
@@ -180,7 +186,7 @@ def add_UTOPIA_problem(username, filename):
 
         db.session.add(
             ProblemModel(
-                name=f"UTOPIA problem for {filename}",
+                name=f"UTOPIA problem for Holding {filename}",
                 problem_type="Discrete",
                 problem_pickle=problem,
                 user_id=id,
@@ -188,7 +194,7 @@ def add_UTOPIA_problem(username, filename):
             )
         )
         db.session.commit()
-        print(f"UTOPIA problem added for user '{username}'")
+        print(f"UTOPIA problem (Holding {filename}) added for user '{username}'")
 
 
 if __name__ == "__main__":
